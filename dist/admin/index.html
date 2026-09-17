@@ -10,21 +10,72 @@
   <body>
     <header class="admin-header">
       <a href="../" class="admin-mark">小孩 / 衣橱</a>
-      <span>店主后台 · WINTER 26</span>
+      <div class="admin-header-actions">
+        <span id="adminIdentity">店主后台</span>
+        <button class="quiet-button" type="button" id="logoutButton" hidden>退出</button>
+      </div>
     </header>
+
     <main>
-      <section class="admin-hero">
-        <p>PRIVATE CATALOG STUDIO</p>
-        <h1>把商品资料整理好，<br />再交给顾客看见。</h1>
-        <button type="button" id="loginButton">店主登录 →</button>
+      <section class="login-shell" id="loginShell">
+        <p class="eyebrow">CATALOG STUDIO / WINTER 26</p>
+        <h1>整理冬季商品，<br />再让顾客看见。</h1>
+        <p class="lead">用店主邮箱登录。内部截图、成本和审核中的素材不会出现在顾客端。</p>
+        <form id="loginForm" class="login-form">
+          <label for="loginEmail">店主邮箱</label>
+          <div class="login-row"><input id="loginEmail" type="email" autocomplete="email" placeholder="name@example.com" required /><button type="submit">发送登录链接</button></div>
+          <p id="loginNotice" class="form-notice">首次使用会收到一封登录邮件。</p>
+        </form>
+        <aside class="setup-note" id="setupNote" hidden>
+          <strong>还差一次管理员开通</strong>
+          <p>你已登录，但尚未被授予店主权限。按下方提示运行管理员权限脚本后，刷新此页即可。</p>
+          <a href="https://github.com/cherish994/winter-kids-selection/blob/main/supabase/002_admin_access.sql" target="_blank" rel="noreferrer">打开管理员权限脚本 ↗</a>
+        </aside>
       </section>
-      <section class="admin-grid" aria-label="上货流程">
-        <article><span>01</span><h2>导入截图</h2><p>保存商品名、货号与内部成本参考。</p></article>
-        <article><span>02</span><h2>匹配高清图</h2><p>上传官方高清图，由审核页确认对应关系。</p></article>
-        <article><span>03</span><h2>编辑前台资料</h2><p>补充场景、尺码、零售价与购买入口。</p></article>
-        <article><span>04</span><h2>确认发布</h2><p>只有已发布的商品会出现在顾客端。</p></article>
+
+      <section id="workspace" hidden>
+        <div class="workspace-head">
+          <div><p class="eyebrow">CATALOG STUDIO / WINTER 26</p><h1>本季上货台</h1></div>
+          <span class="live-state"><i></i> 已连接素材库</span>
+        </div>
+
+        <section class="upload-panel" aria-labelledby="assets-title">
+          <div class="panel-heading"><div><p class="eyebrow">01 / MATERIALS</p><h2 id="assets-title">先放进素材库</h2></div><p>截图用于内部记录；高清图将在商品发布后出现在顾客端。</p></div>
+          <div class="upload-grid">
+            <label class="drop-zone private-zone" for="sourceFiles"><span>快团团截图</span><small>可一次选多张，内部可见</small><input id="sourceFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+            <label class="drop-zone public-zone" for="highResFiles"><span>官方高清图</span><small>可一次选多张，等待匹配发布</small><input id="highResFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+          </div>
+          <div class="upload-actions"><button type="button" id="uploadButton">上传所选素材 <span>→</span></button><p id="uploadNotice" class="form-notice">建议每张图片不超过 6 MB。</p></div>
+          <div class="upload-list" id="uploadList" aria-live="polite"></div>
+        </section>
+
+        <section class="product-panel" aria-labelledby="product-title">
+          <div class="panel-heading"><div><p class="eyebrow">02 / PRODUCT</p><h2 id="product-title">建立商品卡</h2></div><p>保存为“待审核”后，确认零售价和购买链接，再发布到前台。</p></div>
+          <form id="productForm" class="product-form">
+            <label>货号<input id="sku" required placeholder="例如 324" /></label>
+            <label>品牌<input id="brand" value="ROTOTO BEBE" required /></label>
+            <label class="wide">商品名称<input id="productName" required placeholder="例如 复古撞色居家服" /></label>
+            <label>分类<select id="category"><option>居家服</option><option>套装</option><option>马甲</option><option>外套</option><option>冬季单品</option></select></label>
+            <label>场景<input id="scenes" placeholder="日常, 送礼, 周岁, 出行" /></label>
+            <label>适穿年龄<input id="ageGroups" placeholder="例如 1–5 岁" /></label>
+            <label>最低身高（cm）<input id="heightMin" type="number" min="40" max="170" placeholder="80" /></label>
+            <label>最高身高（cm）<input id="heightMax" type="number" min="40" max="170" placeholder="110" /></label>
+            <label>顾客售价（¥）<input id="retailPrice" type="number" min="0" step="0.01" placeholder="199" /></label>
+            <label class="wide">购买链接<input id="purchaseUrl" type="url" placeholder="https://…" /></label>
+            <label class="wide">商品说明<textarea id="description" rows="3" placeholder="为顾客写一句简短、真实的商品描述"></textarea></label>
+            <label>来源售价（内部）<input id="sourcePrice" type="number" min="0" step="0.01" placeholder="仅店主可见" /></label>
+            <label>帮卖佣金（内部）<input id="commission" type="number" min="0" step="0.01" placeholder="仅店主可见" /></label>
+            <label class="wide">封面高清图网址<input id="coverImageUrl" type="url" placeholder="上传高清图后自动填入，也可粘贴已审核图片网址" /></label>
+            <label class="wide">截图素材路径（内部）<input id="sourceScreenshotPath" placeholder="上传截图后自动填入" /></label>
+            <div class="form-footer"><p class="form-notice" id="productNotice">保存时会自动计算内部实际成本；不会发送到顾客端。</p><div><button class="secondary-button" type="submit" data-status="review">存为待审核</button><button type="submit" data-status="published">确认发布 →</button></div></div>
+          </form>
+        </section>
+
+        <section class="catalog-panel" aria-labelledby="catalog-title">
+          <div class="panel-heading"><div><p class="eyebrow">03 / REVIEW</p><h2 id="catalog-title">本季商品</h2></div><button class="text-button" type="button" id="refreshButton">刷新列表 ↻</button></div>
+          <div id="catalogList" class="catalog-list" aria-live="polite"></div>
+        </section>
       </section>
-      <p class="admin-notice" id="adminNotice">此页面将通过 Supabase 登录权限保护；目前数据库结构已准备，等待店主创建首个管理员账号。</p>
     </main>
     <script src="admin.js"></script>
   </body>
