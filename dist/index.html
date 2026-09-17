@@ -3,204 +3,124 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#102b32" />
-    <meta
-      name="description"
-      content="冬日童装选款 — 根据场景、年龄、身高与体重推荐合适的冬装。"
-    />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%231d8a78' d='M12 27 32 8l20 19v27H12z'/%3E%3Cpath fill='%23ffb349' d='M23 38c2-7 16-7 18 0s-3 12-9 12-11-5-9-12Z'/%3E%3C/svg%3E" />
-    <title>冬日童装选款</title>
+    <meta name="theme-color" content="#ffffff" />
+    <title>小孩 / 衣橱 · 冬季童装精选</title>
+    <meta name="description" content="按日常、送礼、周岁与出行场景挑选冬季童装。" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="announcement">WINTER 26 &nbsp;·&nbsp; 冬季系列正在整理中 &nbsp;·&nbsp; 高清商品图即将上线</div>
+
     <header class="site-header">
-      <a class="brand" href="#top" aria-label="冬日童装选款首页">
-        <span class="brand-mark">W</span>
-        <span>冬日童装选款<small>WINTER / 26</small></span>
+      <a class="wordmark" href="#top" aria-label="小孩衣橱首页">
+        <span>小孩</span><i>/</i><span>衣橱</span>
       </a>
-      <nav aria-label="页面导航">
-        <a href="#catalog">冬季目录</a>
-        <a href="#how-it-works">如何推荐</a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="#catalog">冬季新款</a>
+        <a href="#scenes">按场景挑选</a>
+        <a href="#size">尺码小帮手</a>
       </nav>
-      <button class="button button-dark" id="openUpload" type="button">店主上货</button>
+      <div class="header-actions" aria-label="快捷功能">
+        <button class="icon-button" type="button" aria-label="搜索">⌕</button>
+        <button class="icon-button" type="button" aria-label="收藏">♡</button>
+        <button class="menu-button" type="button" aria-label="菜单">☰</button>
+      </div>
     </header>
 
     <main id="top">
-      <section class="intro section-shell" aria-labelledby="pageTitle">
-        <div class="intro-copy">
-          <p class="eyebrow">冬季首批 · 快团团供货</p>
-          <h1 id="pageTitle">先选孩子，再选一件<br />真正会穿的冬装。</h1>
-          <p class="intro-text">把送礼、周岁和日常场景放在前面，结合年龄、身高和体重，给出适合当前孩子的冬季款式。</p>
-          <div class="trust-row">
-            <span>冬季优先</span><span>尺码建议</span><span>高清素材匹配</span>
-          </div>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">A SMALL WINTER EDIT</p>
+          <h1 id="hero-title">孩子的冬天，<br />应该很有颜色。</h1>
+          <p class="hero-description">不追赶大人的流行，把舒服、好动和一点快乐色彩留给每一天。</p>
+          <a class="text-link" href="#catalog">查看冬季精选 <span>→</span></a>
         </div>
-
-        <form class="selector-card" id="recommendForm">
-          <div class="selector-heading">
-            <div>
-              <p class="eyebrow">STEP 01</p>
-              <h2>告诉我孩子的情况</h2>
-            </div>
-            <span class="snow-dot" aria-hidden="true">✦</span>
-          </div>
-
-          <fieldset>
-            <legend>这次为什么选衣服？</legend>
-            <div class="chip-grid" id="sceneChips">
-              <button class="choice-chip is-selected" type="button" data-scene="daily">日常穿</button>
-              <button class="choice-chip" type="button" data-scene="gift">送礼</button>
-              <button class="choice-chip" type="button" data-scene="birthday">周岁</button>
-              <button class="choice-chip" type="button" data-scene="travel">外出拍照</button>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>孩子年龄</legend>
-            <div class="chip-grid compact" id="ageChips">
-              <button class="choice-chip" type="button" data-age="0-1">0–1 岁</button>
-              <button class="choice-chip is-selected" type="button" data-age="1-3">1–3 岁</button>
-              <button class="choice-chip" type="button" data-age="2-5">2–5 岁</button>
-              <button class="choice-chip" type="button" data-age="3-6">3–6 岁</button>
-            </div>
-          </fieldset>
-
-          <div class="measurements">
-            <label>身高（cm）<input id="height" min="45" max="150" inputmode="numeric" placeholder="例如 92" type="number" /></label>
-            <label>体重（kg）<input id="weight" min="2" max="50" inputmode="decimal" placeholder="例如 14" step="0.1" type="number" /></label>
-          </div>
-          <button class="button button-primary button-full" type="submit">查看我的冬季推荐 <span>→</span></button>
-          <p class="form-note">这是选款建议，不替代商品尺码表；下单前请确认具体尺码。</p>
-        </form>
+        <figure class="hero-art">
+          <img src="assets/winter-color-editorial.png" alt="白色背景中的亮色冬日织物搭配" />
+          <figcaption>COLOR STUDY / WINTER 26</figcaption>
+        </figure>
       </section>
 
-      <section class="recommend-section section-shell" aria-labelledby="recommendHeading">
+      <section class="scene-section" id="scenes" aria-labelledby="scene-title">
         <div class="section-heading">
+          <p class="eyebrow">START WITH A MOMENT</p>
+          <h2 id="scene-title">今天，为哪一种快乐挑衣服？</h2>
+        </div>
+        <div class="scene-grid">
+          <button class="scene-tile tile-blue" type="button" data-scene="日常">
+            <span class="scene-index">01</span><strong>日常玩耍</strong><small>软一点，动得开</small><b>↗</b>
+          </button>
+          <button class="scene-tile tile-yellow" type="button" data-scene="送礼">
+            <span class="scene-index">02</span><strong>送给小朋友</strong><small>打开就是惊喜</small><b>↗</b>
+          </button>
+          <button class="scene-tile tile-pink" type="button" data-scene="周岁">
+            <span class="scene-index">03</span><strong>周岁见面礼</strong><small>第一年的纪念</small><b>↗</b>
+          </button>
+          <button class="scene-tile tile-lime" type="button" data-scene="出行">
+            <span class="scene-index">04</span><strong>周末出行</strong><small>层层穿，也好看</small><b>↗</b>
+          </button>
+        </div>
+      </section>
+
+      <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
+        <div class="catalog-head">
           <div>
-            <p class="eyebrow">STEP 02</p>
-            <h2 id="recommendHeading">为 <span id="selectionLabel">1–3 岁、日常穿</span> 推荐</h2>
+            <p class="eyebrow">THE WINTER RACK</p>
+            <h2 id="catalog-title">本周新到</h2>
           </div>
-          <button class="text-button" id="showAll" type="button">查看全部冬装 →</button>
+          <button class="filter-button" type="button" aria-label="筛选商品">筛选 <span>＋</span></button>
         </div>
-        <p class="recommend-reason" id="recommendReason">优先给你看活动方便、可叠穿、适合日常使用频率高的款式。</p>
-        <div class="product-grid featured-grid" id="recommendations" aria-live="polite"></div>
+        <div class="category-strip" aria-label="商品分类">
+          <button class="category active" type="button" data-category="全部">全部</button>
+          <button class="category" type="button" data-category="居家服">居家服</button>
+          <button class="category" type="button" data-category="套装">套装</button>
+          <button class="category" type="button" data-category="马甲">马甲</button>
+        </div>
+        <p class="catalog-status" id="catalogStatus">正在准备本季商品资料</p>
+        <div class="product-grid" id="productGrid" aria-live="polite"></div>
       </section>
 
-      <section class="catalog-section" id="catalog" aria-labelledby="catalogHeading">
-        <div class="section-shell">
-          <div class="section-heading catalog-heading">
-            <div>
-              <p class="eyebrow">WINTER / 26</p>
-              <h2 id="catalogHeading">冬季选款目录</h2>
-            </div>
-            <p class="catalog-count" id="catalogCount">6 个款式</p>
-          </div>
-          <div class="filter-row" id="categoryFilters" aria-label="按品类筛选">
-            <button class="filter-button is-active" data-category="all" type="button">全部</button>
-            <button class="filter-button" data-category="homewear" type="button">居家服</button>
-            <button class="filter-button" data-category="set" type="button">套装</button>
-            <button class="filter-button" data-category="vest" type="button">马甲</button>
-          </div>
-          <div class="product-grid catalog-grid" id="catalogGrid"></div>
-          <p class="catalog-footnote">当前为首批测试目录。商品高清图片与快团团购买入口将在素材匹配后补齐。</p>
+      <section class="size-section" id="size" aria-labelledby="size-title">
+        <div class="size-intro">
+          <p class="eyebrow">SIZE, WITHOUT GUESSING</p>
+          <h2 id="size-title">尺码别靠猜。<br />告诉我小朋友现在的样子。</h2>
+          <p>输入年龄、身高和体重，我们会给出优先参考的尺码区间。每个品牌版型不同，最终请以商品尺码表为准。</p>
         </div>
-      </section>
-
-      <section class="how-section section-shell" id="how-it-works" aria-labelledby="howHeading">
-        <div class="how-intro">
-          <p class="eyebrow">给店主的工作流</p>
-          <h2 id="howHeading">截图记录成本，高清图负责展示。</h2>
-          <p>快团团截图用于读取商品名、售价和帮卖佣金；高清素材用于前台呈现。两类资料经确认匹配后，才进入选款目录。</p>
-          <button class="button button-outline" id="openUploadSecondary" type="button">进入店主上货</button>
-        </div>
-        <ol class="steps-list">
-          <li><span>01</span><strong>上传快团团截图</strong><p>保留商品名、售价、佣金和款号。</p></li>
-          <li><span>02</span><strong>补充官方高清图</strong><p>按同批次上传，供素材匹配核对。</p></li>
-          <li><span>03</span><strong>确认后上架</strong><p>成本仅店主可见，顾客只看推荐与购买入口。</p></li>
-        </ol>
+        <form class="size-form" id="sizeForm">
+          <label>年龄<select id="age"><option value="">请选择</option><option value="0-1岁">0–1 岁</option><option value="1-2岁">1–2 岁</option><option value="2-3岁">2–3 岁</option><option value="3-5岁">3–5 岁</option><option value="5-7岁">5–7 岁</option></select></label>
+          <label>身高（cm）<input id="height" type="number" min="45" max="160" placeholder="例如 92" /></label>
+          <label>体重（kg）<input id="weight" type="number" min="3" max="55" step="0.1" placeholder="例如 14" /></label>
+          <button class="primary-button" type="submit">看看建议 <span>→</span></button>
+          <p class="size-result" id="sizeResult" aria-live="polite"></p>
+        </form>
       </section>
     </main>
 
     <footer>
-      <span>冬日童装选款 · 冬季测试版</span>
-      <button class="text-button" id="footerUpload" type="button">店主上货入口 ↑</button>
+      <a class="wordmark" href="#top"><span>小孩</span><i>/</i><span>衣橱</span></a>
+      <p>为小朋友留一间色彩很多的衣橱。</p>
+      <small>© 2026 小孩 / 衣橱</small>
     </footer>
 
-    <dialog class="product-dialog" id="productDialog" aria-labelledby="productDialogTitle">
-      <button class="icon-button close-dialog" data-close="productDialog" aria-label="关闭详情" type="button">×</button>
-      <div class="dialog-media"><span>高清素材<br />待匹配</span></div>
-      <div class="dialog-body" id="productDialogBody"></div>
-    </dialog>
+    <nav class="mobile-nav" aria-label="移动端导航">
+      <a class="selected" href="#top"><span>⌂</span>首页</a>
+      <a href="#catalog"><span>▦</span>选购</a>
+      <a href="#scenes"><span>✦</span>场景</a>
+      <a href="#size"><span>◯</span>我的</a>
+    </nav>
 
-    <dialog class="upload-dialog" id="uploadDialog" aria-labelledby="uploadDialogTitle">
-      <div class="upload-dialog-header">
-        <div>
-          <p class="eyebrow">店主工作台 · WINTER / 26</p>
-          <h2 id="uploadDialogTitle">批量上货</h2>
-        </div>
-        <button class="icon-button close-dialog" data-close="uploadDialog" aria-label="关闭上货入口" type="button">×</button>
+    <dialog id="productDialog" class="product-dialog">
+      <button class="dialog-close" type="button" aria-label="关闭">×</button>
+      <div id="dialogVisual" class="dialog-visual"></div>
+      <div class="dialog-content">
+        <p class="eyebrow" id="dialogBrand"></p>
+        <h2 id="dialogTitle"></h2>
+        <p id="dialogDescription"></p>
+        <div class="dialog-meta" id="dialogMeta"></div>
+        <p class="dialog-price" id="dialogPrice"></p>
+        <a id="dialogAction" class="dialog-action" href="#" rel="noreferrer">查看商品 <span>↗</span></a>
       </div>
-      <p class="upload-intro">把同一批次的快团团截图和高清商品图一起上传。当前 H5 会在本机生成待处理任务；识别、核对和正式入库将在后台接入后完成。</p>
-      <form id="uploadForm" class="upload-form">
-        <label class="source-link">快团团团购链接（可选）<input id="sourceLink" type="url" placeholder="粘贴本批次团购链接" /></label>
-        <div class="upload-grid">
-          <label class="drop-zone" for="kttFiles">
-            <input id="kttFiles" accept="image/*" multiple type="file" />
-            <span class="upload-number">1</span>
-            <strong>上传快团团截图</strong>
-            <small>需尽量包含名称、售价、帮卖佣金和款号</small>
-            <em>选择图片</em>
-          </label>
-          <label class="drop-zone accent" for="assetFiles">
-            <input id="assetFiles" accept="image/*" multiple type="file" />
-            <span class="upload-number">2</span>
-            <strong>上传官方高清素材</strong>
-            <small>可上传白底图、上身图或详情图</small>
-            <em>选择图片</em>
-          </label>
-        </div>
-        <div class="file-summary" aria-live="polite">
-          <div><strong>快团团截图</strong><span id="kttSummary">还未选择</span></div>
-          <div><strong>高清素材</strong><span id="assetSummary">还未选择</span></div>
-        </div>
-        <div class="preview-list" id="filePreviews" aria-label="本次上传的图片预览"></div>
-        <button class="button button-primary button-full" type="submit">创建素材匹配任务 <span>→</span></button>
-      </form>
-
-      <section class="task-panel" aria-labelledby="taskHeading">
-        <div class="task-heading"><h3 id="taskHeading">最近任务</h3><span class="status-pill">本机预演</span></div>
-        <div id="taskList" class="task-list">
-          <p class="empty-task">暂时没有任务。上传一批资料后会显示在这里。</p>
-        </div>
-      </section>
-
-      <section class="cost-panel" aria-labelledby="costHeading">
-        <div class="cost-heading">
-          <div><p class="eyebrow">仅店主可见</p><h3 id="costHeading">已确认的快团团成本</h3></div>
-          <span>成本 = 售价 − 帮卖佣金</span>
-        </div>
-        <div class="cost-table-wrap">
-          <table>
-            <thead><tr><th>款号</th><th>快团售价</th><th>佣金</th><th>成本</th></tr></thead>
-            <tbody id="costRows"></tbody>
-          </table>
-        </div>
-      </section>
     </dialog>
-
-    <template id="productTemplate">
-      <article class="product-card">
-        <button class="product-card-button" type="button">
-          <div class="product-media"><span class="product-code"></span><span class="material-status">高清素材<br />待匹配</span></div>
-          <div class="product-card-content">
-            <p class="product-type"></p>
-            <h3 class="product-name"></h3>
-            <p class="product-note"></p>
-            <div class="card-bottom"><span class="size-tag"></span><span class="entry-status">入口待绑定</span></div>
-          </div>
-        </button>
-      </article>
-    </template>
 
     <script src="app.js"></script>
   </body>

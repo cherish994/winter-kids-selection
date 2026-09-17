@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>店主后台 · 小孩 / 衣橱</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header class="admin-header">
+      <a href="../" class="admin-mark">小孩 / 衣橱</a>
+      <span>店主后台 · WINTER 26</span>
+    </header>
+    <main>
+      <section class="admin-hero">
+        <p>PRIVATE CATALOG STUDIO</p>
+        <h1>把商品资料整理好，<br />再交给顾客看见。</h1>
+        <button type="button" id="loginButton">店主登录 →</button>
+      </section>
+      <section class="admin-grid" aria-label="上货流程">
+        <article><span>01</span><h2>导入截图</h2><p>保存商品名、货号与内部成本参考。</p></article>
+        <article><span>02</span><h2>匹配高清图</h2><p>上传官方高清图，由审核页确认对应关系。</p></article>
+        <article><span>03</span><h2>编辑前台资料</h2><p>补充场景、尺码、零售价与购买入口。</p></article>
+        <article><span>04</span><h2>确认发布</h2><p>只有已发布的商品会出现在顾客端。</p></article>
+      </section>
+      <p class="admin-notice" id="adminNotice">此页面将通过 Supabase 登录权限保护；目前数据库结构已准备，等待店主创建首个管理员账号。</p>
+    </main>
+    <script src="admin.js"></script>
+  </body>
+</html>

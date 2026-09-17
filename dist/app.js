@@ -1,267 +1,155 @@
-const products = [
-  {
-    code: "324",
-    name: "撞色点缀居家服",
-    type: "两件居家套装",
-    category: "homewear",
-    ages: ["1-3", "2-5"],
-    scenes: ["daily", "gift"],
-    size: "80–120 cm",
-    note: "柔和撞色，适合秋冬居家与轻外出。",
-    kttPrice: 99,
-    commission: 4.95,
-    officialPrice: 119.5,
-  },
-  {
-    code: "328",
-    name: "碎花荷叶边居家服",
-    type: "两件居家套装",
-    category: "homewear",
-    ages: ["1-3", "2-5", "3-6"],
-    scenes: ["gift", "birthday", "daily"],
-    size: "80–130 cm",
-    note: "花边细节更有礼物感，适合女孩周岁与送礼。",
-    kttPrice: 109,
-    commission: 5.45,
-    officialPrice: 139.5,
-  },
-  {
-    code: "327",
-    name: "圆领印花套装",
-    type: "秋冬套装",
-    category: "set",
-    ages: ["1-3", "2-5", "3-6"],
-    scenes: ["daily", "travel", "gift"],
-    size: "80–130 cm",
-    note: "一套完成搭配，外出和日常都省心。",
-    kttPrice: 129,
-    commission: 6.45,
-    officialPrice: 149.5,
-  },
-  {
-    code: "325",
-    name: "贴身居家服",
-    type: "打底居家套装",
-    category: "homewear",
-    ages: ["0-1", "1-3", "2-5"],
-    scenes: ["daily", "birthday"],
-    size: "70–120 cm",
-    note: "轻薄贴身，适合室内活动与冬季叠穿。",
-    kttPrice: 85,
-    commission: 4.25,
-    officialPrice: 99.5,
-  },
-  {
-    code: "326",
-    name: "宽松印花居家服",
-    type: "打底居家套装",
-    category: "homewear",
-    ages: ["0-1", "1-3", "2-5"],
-    scenes: ["daily", "gift"],
-    size: "70–120 cm",
-    note: "宽松版型更自在，适合宝宝日常活动。",
-    kttPrice: 85,
-    commission: 4.25,
-    officialPrice: 99.5,
-  },
-  {
-    code: "321",
-    name: "棉莫代尔印花居家服",
-    type: "宽松居家套装",
-    category: "homewear",
-    ages: ["1-3", "2-5", "3-6"],
-    scenes: ["gift", "daily", "travel"],
-    size: "80–130 cm",
-    note: "轻柔材质与活泼图案，作为礼物也合适。",
-    kttPrice: null,
-    commission: null,
-    officialPrice: 99.5,
-  },
-  {
-    code: "378",
-    name: "拼色抓绒马甲",
-    type: "秋冬马甲",
-    category: "vest",
-    ages: ["2-5", "3-6"],
-    scenes: ["travel", "gift", "daily"],
-    size: "90–130 cm",
-    note: "适合温差天气的叠穿，方便活动。",
-    kttPrice: 159,
-    commission: 7.95,
-    officialPrice: null,
-  },
-  {
-    code: "329",
-    name: "圆领背心",
-    type: "秋冬马甲",
-    category: "vest",
-    ages: ["1-3", "2-5", "3-6"],
-    scenes: ["daily", "travel"],
-    size: "80–130 cm",
-    note: "简洁实穿，适合在居家服外加一层。",
-    kttPrice: 79,
-    commission: 3.95,
-    officialPrice: null,
-  },
+const SUPABASE_URL = "https://dqslxzroiffhxhacnzdg.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_YJpsMmce6XnBd47XQ3GO2A_QsGGqLqs";
+
+const previewProducts = [
+  { id: "preview-324", sku: "324", brand: "ROTO TO BEBE", name: "复古撞色居家服", category: "居家服", scenes: ["日常", "周岁"], ages: "1–5 岁", range: "80–110 cm", description: "轻柔长袖与长裤组合，适合温度刚好的室内日常。", color: "#b7d4ab" },
+  { id: "preview-328", sku: "328", brand: "ROTO TO BEBE", name: "小花领口居家服", category: "居家服", scenes: ["日常", "送礼"], ages: "1–5 岁", range: "80–110 cm", description: "细小花纹和宽松空间，留给睡前、早餐和周末。", color: "#ffb9cb" },
+  { id: "preview-327", sku: "327", brand: "ROTO TO BEBE", name: "迷你水果套装", category: "套装", scenes: ["出行", "送礼"], ages: "1–5 岁", range: "80–110 cm", description: "亮一点的图案，搭一件外套就能出门。", color: "#fff062" },
+  { id: "preview-325", sku: "325", brand: "ROTO TO BEBE", name: "签名撞色家居服", category: "居家服", scenes: ["日常", "周岁"], ages: "1–5 岁", range: "80–110 cm", description: "有趣的边线细节，为每天的居家时间加一点颜色。", color: "#8dc6ff" },
+  { id: "preview-326", sku: "326", brand: "ROTO TO BEBE", name: "签名小熊家居服", category: "居家服", scenes: ["日常", "送礼"], ages: "1–5 岁", range: "80–110 cm", description: "舒适、好洗，也适合第一次送给小朋友的礼物。", color: "#ffc59f" },
+  { id: "preview-329", sku: "329", brand: "ROTO TO BEBE", name: "背后小狗圆领马甲", category: "马甲", scenes: ["出行", "送礼"], ages: "1–5 岁", range: "80–110 cm", description: "可以叠穿的轻暖马甲，让出门多一个颜色层次。", color: "#cebbff" },
+  { id: "preview-378", sku: "378", brand: "ROTO TO BEBE", name: "彩色拼接摇粒绒马甲", category: "马甲", scenes: ["出行", "送礼"], ages: "1–5 岁", range: "80–110 cm", description: "明快拼色与保暖绒感，为降温时刻准备。", color: "#ff806b" },
+  { id: "preview-321", sku: "321", brand: "ROTO TO BEBE", name: "棉莫代尔长袖家居服", category: "居家服", scenes: ["日常"], ages: "1–5 岁", range: "80–110 cm", description: "一套不费力的日常基础款，适合在家慢慢长大。", color: "#bff0d0" }
 ];
 
-const state = { scene: "daily", age: "1-3", category: "all", tasks: [] };
-const sceneLabel = { daily: "日常穿", gift: "送礼", birthday: "周岁", travel: "外出拍照" };
-const sceneReason = {
-  daily: "优先给你看活动方便、可叠穿、适合日常使用频率高的款式。",
-  gift: "优先给你看有细节、有成套感、打开礼物就容易穿上的冬季款式。",
-  birthday: "优先给你看舒适亲肤、上镜有细节，又不影响孩子活动的款式。",
-  travel: "优先给你看好搭配、适合拍照、能应对室内外温差的冬季款式。",
-};
+let products = [...previewProducts];
+let selectedCategory = "全部";
+let selectedScene = "";
 
-const $ = (selector) => document.querySelector(selector);
-const money = (value) => `¥${Number(value).toFixed(2).replace(/\.00$/, "")}`;
+const grid = document.querySelector("#productGrid");
+const status = document.querySelector("#catalogStatus");
+const dialog = document.querySelector("#productDialog");
 
-function productCard(product) {
-  const template = $("#productTemplate");
-  const fragment = template.content.cloneNode(true);
-  const button = fragment.querySelector(".product-card-button");
-  fragment.querySelector(".product-code").textContent = `ROTOTOBEBE ${product.code}`;
-  fragment.querySelector(".product-type").textContent = product.type;
-  fragment.querySelector(".product-name").textContent = product.name;
-  fragment.querySelector(".product-note").textContent = product.note;
-  fragment.querySelector(".size-tag").textContent = product.size;
-  button.addEventListener("click", () => openProduct(product));
-  return fragment;
+function normalizeProduct(row) {
+  return {
+    id: row.id,
+    sku: row.sku || "NEW",
+    brand: row.brand || "小孩 / 衣橱",
+    name: row.name,
+    category: row.category || "冬季单品",
+    scenes: Array.isArray(row.scenes) ? row.scenes : [],
+    ages: Array.isArray(row.age_groups) ? row.age_groups.join(" · ") : (row.age_groups || "以尺码表为准"),
+    range: row.height_min && row.height_max ? `${row.height_min}–${row.height_max} cm` : "以尺码表为准",
+    description: row.description || "",
+    price: row.retail_price ? `¥${Number(row.retail_price).toFixed(0)}` : "新品预告",
+    purchaseUrl: row.purchase_url,
+    coverImage: row.cover_image_url,
+    color: "#ececec"
+  };
 }
 
-function renderRecommendations() {
-  const height = Number($("#height").value);
-  const weight = Number($("#weight").value);
-  const recommended = products
-    .filter((product) => product.ages.includes(state.age))
-    .sort((a, b) => Number(b.scenes.includes(state.scene)) - Number(a.scenes.includes(state.scene)))
-    .slice(0, 3);
-  const label = `${state.age} 岁、${sceneLabel[state.scene]}`;
-  let reason = sceneReason[state.scene];
-  if (height && weight) reason += ` 已参考你填写的 ${height} cm / ${weight} kg；下单时再按商品尺码表确认。`;
-  $("#selectionLabel").textContent = label;
-  $("#recommendReason").textContent = reason;
-  const container = $("#recommendations");
-  container.replaceChildren(...recommended.map(productCard));
-}
-
-function renderCatalog() {
-  const filtered = state.category === "all" ? products : products.filter((product) => product.category === state.category);
-  const container = $("#catalogGrid");
-  container.replaceChildren(...filtered.map(productCard));
-  $("#catalogCount").textContent = `${filtered.length} 个款式`;
-}
-
-function openProduct(product) {
-  $("#productDialogBody").innerHTML = `
-    <p class="detail-type">ROTOTOBEBE ${product.code} · ${product.type}</p>
-    <h2 id="productDialogTitle">${product.name}</h2>
-    <p class="detail-description">${product.note} 这一页暂不展示店主成本；消费者将在正式上架后通过对应的快团团购买入口进入选购。</p>
-    <div class="detail-meta"><span>建议尺码：${product.size}</span><span>冬季首批</span><span>素材待核对</span></div>
-    <p class="detail-notice">购买入口待绑定。店主确认截图、高清图与商品款号匹配后，才会展示购买按钮。</p>`;
-  $("#productDialog").showModal();
-}
-
-function selectionSetup(container, stateKey) {
-  $(container).addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-scene], button[data-age]");
-    if (!button) return;
-    const value = button.dataset.scene || button.dataset.age;
-    state[stateKey] = value;
-    $(container).querySelectorAll("button").forEach((item) => item.classList.toggle("is-selected", item === button));
-    renderRecommendations();
-  });
-}
-
-function fileLabel(files, emptyText) {
-  return files.length ? `已选择 ${files.length} 张` : emptyText;
-}
-
-function previewFiles() {
-  const kttFiles = [...$("#kttFiles").files];
-  const assetFiles = [...$("#assetFiles").files];
-  $("#kttSummary").textContent = fileLabel(kttFiles, "还未选择");
-  $("#assetSummary").textContent = fileLabel(assetFiles, "还未选择");
-  const preview = $("#filePreviews");
-  preview.replaceChildren();
-  [...kttFiles.map((file) => ({ file, kind: "截图" })), ...assetFiles.map((file) => ({ file, kind: "高清" }))]
-    .slice(0, 10)
-    .forEach(({ file, kind }) => {
-      const box = document.createElement("div");
-      box.className = "file-preview";
-      const image = document.createElement("img");
-      image.alt = `${kind}预览：${file.name}`;
-      image.src = URL.createObjectURL(file);
-      const badge = document.createElement("span");
-      badge.textContent = kind;
-      box.append(image, badge);
-      preview.append(box);
+async function loadPublishedProducts() {
+  const endpoint = `${SUPABASE_URL}/rest/v1/products?select=id,sku,brand,name,category,description,age_groups,scenes,height_min,height_max,retail_price,purchase_url,cover_image_url&status=eq.published&order=published_at.desc`;
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      }
     });
+    if (!response.ok) throw new Error("catalog unavailable");
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+    products = rows.map(normalizeProduct);
+    status.textContent = `已上新 ${products.length} 件冬季单品`;
+    renderProducts();
+  } catch {
+    // The pre-launch edit stays visible until the shop owner runs the supplied schema and publishes products.
+  }
 }
 
-function renderTasks() {
-  const container = $("#taskList");
-  if (!state.tasks.length) {
-    container.innerHTML = '<p class="empty-task">暂时没有任务。上传一批资料后会显示在这里。</p>';
+function renderProducts() {
+  const visible = products.filter((product) => {
+    const categoryMatch = selectedCategory === "全部" || product.category === selectedCategory;
+    const sceneMatch = !selectedScene || product.scenes.includes(selectedScene);
+    return categoryMatch && sceneMatch;
+  });
+
+  grid.innerHTML = visible.map((product) => {
+    const imageStyle = product.coverImage ? `background-image:url(&quot;${product.coverImage}&quot;)` : `--card-color:${product.color}`;
+    const visualClass = product.coverImage ? "product-visual has-image" : "product-visual";
+    const tag = product.scenes.length ? product.scenes.slice(0, 2).join(" · ") : product.category;
+    return `<button class="product-card" type="button" data-id="${product.id}">
+      <span class="${visualClass}" style="${imageStyle}"><span class="product-number">${product.sku}</span></span>
+      <span class="product-info">
+        <span class="product-brand">${product.brand}</span>
+        <span class="product-name">${product.name}</span>
+        <span class="product-bottom"><span class="product-price">${product.price || "新品预告"}</span><span class="product-tag">${tag}</span></span>
+      </span>
+    </button>`;
+  }).join("") || `<p class="empty-state">这个组合正在准备中，换一个场景看看。</p>`;
+}
+
+function openProduct(id) {
+  const product = products.find((item) => item.id === id);
+  if (!product) return;
+  const dialogVisual = document.querySelector("#dialogVisual");
+  dialogVisual.style.background = product.coverImage ? `url("${product.coverImage}") center / cover` : product.color;
+  document.querySelector("#dialogBrand").textContent = product.brand;
+  document.querySelector("#dialogTitle").textContent = product.name;
+  document.querySelector("#dialogDescription").textContent = product.description;
+  document.querySelector("#dialogMeta").innerHTML = `<span>${product.ages}</span><span>${product.range}</span><span>${product.category}</span>`;
+  document.querySelector("#dialogPrice").textContent = product.price || "新品预告";
+  const action = document.querySelector("#dialogAction");
+  if (product.purchaseUrl) {
+    action.href = product.purchaseUrl;
+    action.target = "_blank";
+    action.textContent = "查看商品 ↗";
+    action.removeAttribute("aria-disabled");
+  } else {
+    action.href = "#catalog";
+    action.target = "_self";
+    action.textContent = "本季上新中";
+    action.setAttribute("aria-disabled", "true");
+  }
+  dialog.showModal();
+}
+
+document.querySelector("#productGrid").addEventListener("click", (event) => {
+  const card = event.target.closest(".product-card");
+  if (card) openProduct(card.dataset.id);
+});
+
+document.querySelectorAll(".category").forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedCategory = button.dataset.category;
+    document.querySelectorAll(".category").forEach((item) => item.classList.toggle("active", item === button));
+    renderProducts();
+  });
+});
+
+document.querySelectorAll(".scene-tile").forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedScene = button.dataset.scene;
+    selectedCategory = "全部";
+    document.querySelectorAll(".category").forEach((item) => item.classList.toggle("active", item.dataset.category === "全部"));
+    status.textContent = `为「${selectedScene}」挑选的冬季单品`;
+    renderProducts();
+    document.querySelector("#catalog").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+document.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (event) => {
+  if (event.target === dialog) dialog.close();
+});
+
+document.querySelector("#sizeForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const age = document.querySelector("#age").value;
+  const height = Number(document.querySelector("#height").value);
+  const result = document.querySelector("#sizeResult");
+  if (!age && !height) {
+    result.textContent = "先告诉我们年龄或身高，就能给出参考。";
     return;
   }
-  container.innerHTML = state.tasks.map((task) => `
-    <div class="task-item">
-      <div><strong>${task.title}</strong><p>${task.details}</p></div>
-      <span class="task-status">等待云端识别</span>
-    </div>`).join("");
-}
-
-function renderCosts() {
-  const rows = products.filter((product) => product.kttPrice !== null).map((product) => {
-    const cost = product.kttPrice - product.commission;
-    return `<tr><td>${product.code} · ${product.name}</td><td>${money(product.kttPrice)}</td><td>${money(product.commission)}</td><td>${money(cost)}</td></tr>`;
-  });
-  $("#costRows").innerHTML = rows.join("");
-}
-
-function openUpload() { $("#uploadDialog").showModal(); }
-
-selectionSetup("#sceneChips", "scene");
-selectionSetup("#ageChips", "age");
-renderRecommendations();
-renderCatalog();
-renderCosts();
-
-$("#recommendForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  renderRecommendations();
-  $("#recommendHeading").scrollIntoView({ behavior: "smooth", block: "start" });
+  let suggestion = "80 码";
+  if (height >= 105 || age === "5-7岁") suggestion = "110–120 码";
+  else if (height >= 95 || age === "3-5岁") suggestion = "100–110 码";
+  else if (height >= 83 || age === "2-3岁") suggestion = "90–100 码";
+  else if (height >= 70 || age === "1-2岁") suggestion = "80–90 码";
+  result.textContent = `优先看看 ${suggestion}。每个品牌版型不同，请在商品页确认尺码表。`;
 });
 
-$("#showAll").addEventListener("click", () => $("#catalog").scrollIntoView({ behavior: "smooth" }));
-$("#categoryFilters").addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-category]");
-  if (!button) return;
-  state.category = button.dataset.category;
-  $("#categoryFilters").querySelectorAll("button").forEach((item) => item.classList.toggle("is-active", item === button));
-  renderCatalog();
-});
-
-[$("#openUpload"), $("#openUploadSecondary"), $("#footerUpload")].forEach((button) => button.addEventListener("click", openUpload));
-document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => $(`#${button.dataset.close}`).close()));
-[$("#kttFiles"), $("#assetFiles")].forEach((input) => input.addEventListener("change", previewFiles));
-
-$("#uploadForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const kttCount = $("#kttFiles").files.length;
-  const assetCount = $("#assetFiles").files.length;
-  if (!kttCount && !assetCount) {
-    $("#kttSummary").textContent = "请至少选择一张图片";
-    return;
-  }
-  const title = $("#sourceLink").value ? "含团购链接的新批次" : "未绑定团购链接的新批次";
-  state.tasks.unshift({
-    title,
-    details: `快团团截图 ${kttCount} 张 · 高清素材 ${assetCount} 张 · 需要确认款号、名称、售价与佣金`,
-  });
-  renderTasks();
-  $("#uploadForm").reset();
-  previewFiles();
-});
+renderProducts();
+loadPublishedProducts();
