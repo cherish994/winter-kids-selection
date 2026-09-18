@@ -13,9 +13,10 @@ const highResFiles = document.querySelector("#highResFiles");
 const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
 const PRODUCT_QUEUE_KEY = "winter-kids-product-queue";
-const BRAND_LINK_KEY = "winter-kids-brand-purchase-url";
+const BRAND_SETTINGS_KEY = "winter-kids-brand-settings";
 let session = readSession();
 let productQueue = readProductQueue();
+let brandSettings = readBrandSettings();
 
 function readSession() {
   try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
@@ -40,7 +41,7 @@ function automaticSku() {
 function readProductQueue() {
   try {
     const saved = JSON.parse(localStorage.getItem(PRODUCT_QUEUE_KEY) || "[]");
-    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl).map((item) => ({ ...item, matched: item.matched === true, categoryAuto: item.categoryAuto !== false })) : [];
+    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl).map((item) => ({ ...item, brand: item.brand || "ROTOTO BEBE", matched: item.matched === true, categoryAuto: item.categoryAuto !== false })) : [];
   } catch { return []; }
 }
 
@@ -48,8 +49,25 @@ function saveProductQueue() {
   localStorage.setItem(PRODUCT_QUEUE_KEY, JSON.stringify(productQueue));
 }
 
+function readBrandSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BRAND_SETTINGS_KEY) || "{}");
+    if (saved && typeof saved === "object" && Object.keys(saved).length) return saved;
+  } catch { /* fall through to the previous one-brand setting */ }
+  const legacyLink = localStorage.getItem("winter-kids-brand-purchase-url") || "";
+  return legacyLink ? { "ROTOTO BEBE": legacyLink } : {};
+}
+
+function saveBrandSettings() {
+  localStorage.setItem(BRAND_SETTINGS_KEY, JSON.stringify(brandSettings));
+}
+
+function activeBrand() {
+  return document.querySelector("#activeBrand")?.value.trim() || "ROTOTO BEBE";
+}
+
 function sharedPurchaseUrl() {
-  return document.querySelector("#brandPurchaseUrl")?.value.trim() || "";
+  return brandSettings[activeBrand()] || "";
 }
 
 function productNameFromFile(fileName) {
@@ -140,7 +158,7 @@ async function restoreTodayProductQueue() {
     productQueue.push(...recovered.map((item) => ({
       id: crypto.randomUUID(),
       sku: automaticSku(),
-      brand: "ROTOTO BEBE",
+      brand: activeBrand(),
       name: productNameFromFile(item.path.split("/").pop()),
       category: suggestCategory(item.path.split("/").pop()),
       categoryAuto: true,
@@ -315,7 +333,7 @@ async function uploadFiles(files, kind) {
       productQueue.push(...results.map((result, index) => ({
         id: crypto.randomUUID(),
         sku: automaticSku(),
-        brand: "ROTOTO BEBE",
+        brand: activeBrand(),
         name: productNameFromFile(files[index].name),
         category: suggestCategory(files[index].name),
         categoryAuto: true,
@@ -383,9 +401,9 @@ function renderProductQueue() {
     list.innerHTML = `<p class="empty">上传高清图后，会先显示为待匹配素材；确认快团团价格后才生成商品卡。</p>`;
     return;
   }
-  const candidates = productQueue.filter((item) => !item.matched);
+  const candidates = productQueue.filter((item) => !item.matched && item.brand === activeBrand());
   const matched = productQueue.filter((item) => item.matched);
-  const candidateMarkup = candidates.length ? `<div class="candidate-heading"><strong>待匹配素材（${candidates.length}）</strong><small>未确认快团团价格，不会生成商品卡或展示给顾客。</small></div><div class="candidate-list">${candidates.map((item, index) => `<article class="candidate-card" data-queue-id="${item.id}"><img src="${escapeHtml(item.coverImageUrl)}" alt="待匹配素材 ${index + 1}" /><div><strong>素材 ${String(index + 1).padStart(2, "0")}</strong><small>${escapeHtml(item.name)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></article>`).join("")}</div>` : "";
+  const candidateMarkup = candidates.length ? `<div class="candidate-heading"><strong>${escapeHtml(activeBrand())} · 待匹配素材（${candidates.length}）</strong><small>未确认快团团价格，不会生成商品卡或展示给顾客。</small></div><div class="candidate-list">${candidates.map((item, index) => `<article class="candidate-card" data-queue-id="${item.id}"><img src="${escapeHtml(item.coverImageUrl)}" alt="待匹配素材 ${index + 1}" /><div><strong>素材 ${String(index + 1).padStart(2, "0")}</strong><small>${escapeHtml(item.name)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></article>`).join("")}</div>` : "";
   const matchedMarkup = matched.length ? `<div class="candidate-heading"><strong>已匹配商品卡（${matched.length}）</strong><small>这些商品已确认快团团价格，可以继续编辑或发布。</small></div>${matched.map((item, index) => `<article class="queue-card" data-queue-id="${item.id}">
     <img class="queue-image" src="${escapeHtml(item.coverImageUrl)}" alt="${escapeHtml(item.name || `商品图片 ${index + 1}`)}" />
     <div class="queue-card-body">
@@ -459,14 +477,24 @@ document.querySelector("#applyBatchButton").addEventListener("click", () => {
   notice.textContent = applied ? `已按顺序确认 ${applied} 件商品；未填价格的素材仍不会生成商品卡。` : "没有识别到售价。只有确认快团团价格后，素材才会生成商品卡。";
 });
 
+document.querySelector("#activeBrand").addEventListener("input", () => {
+  const brand = activeBrand();
+  document.querySelector("#brandPurchaseUrl").value = brandSettings[brand] || "";
+  document.querySelector("#batchNotice").textContent = `当前品牌：${brand}。上传和匹配只会作用于这个品牌。`;
+  renderProductQueue();
+});
+
 document.querySelector("#brandPurchaseUrl").addEventListener("input", (event) => {
+  const brand = activeBrand();
   const link = event.target.value.trim();
-  localStorage.setItem(BRAND_LINK_KEY, link);
+  brandSettings[brand] = link;
+  saveBrandSettings();
   if (!link) return;
-  productQueue = productQueue.map((item) => ({ ...item, purchaseUrl: link }));
+  productQueue = productQueue.map((item) => item.brand === brand ? { ...item, purchaseUrl: link } : item);
   saveProductQueue();
   renderProductQueue();
-  document.querySelector("#batchNotice").textContent = `品牌链接已同步到当前 ${productQueue.length} 张素材；以后新上传的图片也会自动使用它。`;
+  const count = productQueue.filter((item) => item.brand === brand).length;
+  document.querySelector("#batchNotice").textContent = `品牌链接已同步到 ${brand} 的 ${count} 张素材；其他品牌不会受影响。`;
 });
 
 async function saveQueuedProducts(status) {
@@ -616,6 +644,6 @@ async function loadCatalog() {
 
 document.querySelector("#refreshButton").addEventListener("click", loadCatalog);
 document.querySelector("#sku").value = automaticSku();
-document.querySelector("#brandPurchaseUrl").value = localStorage.getItem(BRAND_LINK_KEY) || "";
+document.querySelector("#brandPurchaseUrl").value = brandSettings[activeBrand()] || "";
 renderProductQueue();
 initialise();
