@@ -57,14 +57,16 @@
         </section>
 
         <section class="product-panel" aria-labelledby="product-title">
-          <div class="panel-heading"><div><p class="eyebrow">03 / PRODUCT QUEUE</p><h2 id="product-title">按图片建立商品卡</h2></div><p>每张高清图都会有一张待上架卡；款号自动生成，按图片顺序批量粘贴售价和快团团链接即可。</p></div>
+          <div class="panel-heading"><div><p class="eyebrow">03 / PRODUCT QUEUE</p><h2 id="product-title">先匹配，再建商品卡</h2></div><p>高清图先进入待匹配素材；只有确认了快团团价格的图片才会生成商品卡。款号自动生成。</p></div>
           <div class="batch-panel">
-            <label for="batchInfo">批量粘贴售价和快团团链接</label>
-            <textarea id="batchInfo" rows="4" placeholder="每行一件，顺序对应下方图片：\n159 https://ktt.pinduoduo.com/t/…\n79 https://ktt.pinduoduo.com/t/…"></textarea>
-            <div><button type="button" class="secondary-button" id="applyBatchButton">填入下方商品卡</button><p class="form-notice" id="batchNotice">可从表格直接复制两列：售价、快团团链接。</p></div>
+            <label for="brandPurchaseUrl">本品牌快团团链接（只填一次）</label>
+            <input id="brandPurchaseUrl" type="url" placeholder="粘贴这个品牌共用的快团团链接" />
+            <label for="batchInfo">批量确认快团团价格</label>
+            <textarea id="batchInfo" rows="4" placeholder="每行一件，顺序对应下方图片：\n159\n79"></textarea>
+            <div><button type="button" class="secondary-button" id="applyBatchButton">确认匹配并生成商品卡</button><p class="form-notice" id="batchNotice">品牌链接只需填一次；这里可直接粘贴一列已确认的快团团售价。未填价格的素材不会生成商品卡。</p></div>
           </div>
-          <div id="queueList" class="queue-list" aria-live="polite"><p class="empty">上传高清图后，商品卡会显示在这里。</p></div>
-          <div class="queue-actions"><p class="form-notice" id="queueNotice">素材中的快团团截图会保留给后续 AI 匹配，不会展示给顾客。</p><div><button class="secondary-button" type="button" id="saveQueueButton">批量存为待审核</button><button type="button" id="publishQueueButton">批量确认发布 →</button></div></div>
+          <div id="queueList" class="queue-list" aria-live="polite"><p class="empty">上传高清图后，会先显示为待匹配素材。</p></div>
+          <div class="queue-actions"><p class="form-notice" id="queueNotice">素材中的快团团截图会保留给后续 AI 匹配，不会展示给顾客。未匹配的高清图不会生成商品卡。</p><div><button class="secondary-button" type="button" id="saveQueueButton">批量存为待审核</button><button type="button" id="publishQueueButton">批量确认发布 →</button></div></div>
           <details class="manual-product">
             <summary>没有高清图时，单独补录一件商品</summary>
             <form id="productForm" class="product-form">

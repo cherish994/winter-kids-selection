@@ -13,6 +13,7 @@ const highResFiles = document.querySelector("#highResFiles");
 const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
 const PRODUCT_QUEUE_KEY = "winter-kids-product-queue";
+const BRAND_LINK_KEY = "winter-kids-brand-purchase-url";
 let session = readSession();
 let productQueue = readProductQueue();
 
@@ -39,12 +40,16 @@ function automaticSku() {
 function readProductQueue() {
   try {
     const saved = JSON.parse(localStorage.getItem(PRODUCT_QUEUE_KEY) || "[]");
-    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl) : [];
+    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl).map((item) => ({ ...item, matched: item.matched === true })) : [];
   } catch { return []; }
 }
 
 function saveProductQueue() {
   localStorage.setItem(PRODUCT_QUEUE_KEY, JSON.stringify(productQueue));
+}
+
+function sharedPurchaseUrl() {
+  return document.querySelector("#brandPurchaseUrl")?.value.trim() || "";
 }
 
 function productNameFromFile(fileName) {
@@ -130,14 +135,15 @@ async function restoreTodayProductQueue() {
       name: productNameFromFile(item.path.split("/").pop()),
       category: "居家服",
       retailPrice: "",
-      purchaseUrl: "",
+      purchaseUrl: sharedPurchaseUrl(),
       coverImageUrl: item.publicUrl,
-      sizeChartUrl: defaultSizeChart
+      sizeChartUrl: defaultSizeChart,
+      matched: false
     })));
     if (defaultSizeChart) document.querySelector("#sizeChartUrl").value = defaultSizeChart;
     saveProductQueue();
     renderProductQueue();
-    document.querySelector("#queueNotice").textContent = `已找回今天上传的 ${recovered.length} 张高清图，并建立待上架卡。`;
+    document.querySelector("#queueNotice").textContent = `已找回今天上传的 ${recovered.length} 张高清图，已放入待匹配素材。`;
   } catch {
     // The queue remains usable when listing a storage folder is not available for this role.
   }
@@ -303,14 +309,15 @@ async function uploadFiles(files, kind) {
         name: productNameFromFile(files[index].name),
         category: "居家服",
         retailPrice: "",
-        purchaseUrl: "",
+        purchaseUrl: sharedPurchaseUrl(),
         coverImageUrl: result.publicUrl,
-        sizeChartUrl: document.querySelector("#sizeChartUrl").value.trim()
+        sizeChartUrl: document.querySelector("#sizeChartUrl").value.trim(),
+        matched: false
       })));
       saveProductQueue();
       renderProductQueue();
     }
-    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" || kind === "size" ? "；第一张已带入商品卡" : ""}。`;
+    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" ? "；已放入待匹配素材" : kind === "size" ? "；已作为默认尺码表" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = `${error.message} 这张图没有保存，请重新选择后重试。`;
   }
@@ -362,10 +369,13 @@ function categoryOptions(selected) {
 function renderProductQueue() {
   const list = document.querySelector("#queueList");
   if (!productQueue.length) {
-    list.innerHTML = `<p class="empty">上传高清图后，商品卡会显示在这里。</p>`;
+    list.innerHTML = `<p class="empty">上传高清图后，会先显示为待匹配素材；确认快团团价格后才生成商品卡。</p>`;
     return;
   }
-  list.innerHTML = productQueue.map((item, index) => `<article class="queue-card" data-queue-id="${item.id}">
+  const candidates = productQueue.filter((item) => !item.matched);
+  const matched = productQueue.filter((item) => item.matched);
+  const candidateMarkup = candidates.length ? `<div class="candidate-heading"><strong>待匹配素材（${candidates.length}）</strong><small>未确认快团团价格，不会生成商品卡或展示给顾客。</small></div><div class="candidate-list">${candidates.map((item, index) => `<article class="candidate-card" data-queue-id="${item.id}"><img src="${escapeHtml(item.coverImageUrl)}" alt="待匹配素材 ${index + 1}" /><div><strong>素材 ${String(index + 1).padStart(2, "0")}</strong><small>${escapeHtml(item.name)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></article>`).join("")}</div>` : "";
+  const matchedMarkup = matched.length ? `<div class="candidate-heading"><strong>已匹配商品卡（${matched.length}）</strong><small>这些商品已确认快团团价格，可以继续编辑或发布。</small></div>${matched.map((item, index) => `<article class="queue-card" data-queue-id="${item.id}">
     <img class="queue-image" src="${escapeHtml(item.coverImageUrl)}" alt="${escapeHtml(item.name || `商品图片 ${index + 1}`)}" />
     <div class="queue-card-body">
       <div class="queue-card-head"><div><strong>图片 ${String(index + 1).padStart(2, "0")}</strong><small>款号 ${escapeHtml(item.sku)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></div>
@@ -376,7 +386,8 @@ function renderProductQueue() {
         <label>分类<select data-queue-field="category">${categoryOptions(item.category)}</select></label>
       </div>
     </div>
-  </article>`).join("");
+  </article>`).join("")}` : "";
+  list.innerHTML = candidateMarkup + matchedMarkup;
 }
 
 function updateQueueItem(id, field, value) {
@@ -409,8 +420,10 @@ document.querySelector("#queueList").addEventListener("click", (event) => {
 document.querySelector("#applyBatchButton").addEventListener("click", () => {
   const lines = document.querySelector("#batchInfo").value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const notice = document.querySelector("#batchNotice");
-  if (!productQueue.length) {
-    notice.textContent = "请先上传高清图，系统才能知道每行信息该填到哪张商品卡。";
+  const commonLink = sharedPurchaseUrl();
+  const candidates = productQueue.filter((item) => !item.matched);
+  if (!candidates.length) {
+    notice.textContent = "没有待匹配素材。请先上传高清图，或继续编辑已匹配商品卡。";
     return;
   }
   if (!lines.length) {
@@ -418,27 +431,40 @@ document.querySelector("#applyBatchButton").addEventListener("click", () => {
     return;
   }
   let applied = 0;
-  lines.slice(0, productQueue.length).forEach((line, index) => {
+  lines.slice(0, candidates.length).forEach((line, index) => {
     const price = line.match(/(?:¥|￥)?\s*(\d+(?:\.\d{1,2})?)/)?.[1];
-    const link = line.match(/https?:\/\/\S+/i)?.[0];
-    if (price) productQueue[index].retailPrice = price;
-    if (link) productQueue[index].purchaseUrl = link;
-    if (price || link) applied += 1;
+    const link = line.match(/https?:\/\/\S+/i)?.[0] || commonLink;
+    if (price) {
+      candidates[index].retailPrice = price;
+      if (link) candidates[index].purchaseUrl = link;
+      candidates[index].matched = true;
+      applied += 1;
+    }
   });
   saveProductQueue();
   renderProductQueue();
-  notice.textContent = applied ? `已按顺序填入 ${applied} 张商品卡。` : "没有识别到售价或完整链接，请检查粘贴内容。";
+  notice.textContent = applied ? `已按顺序确认 ${applied} 件商品；未填价格的素材仍不会生成商品卡。` : "没有识别到售价。只有确认快团团价格后，素材才会生成商品卡。";
+});
+
+document.querySelector("#brandPurchaseUrl").addEventListener("input", (event) => {
+  const link = event.target.value.trim();
+  localStorage.setItem(BRAND_LINK_KEY, link);
+  if (!link) return;
+  productQueue = productQueue.map((item) => item.purchaseUrl ? item : { ...item, purchaseUrl: link });
+  saveProductQueue();
+  renderProductQueue();
 });
 
 async function saveQueuedProducts(status) {
   const notice = document.querySelector("#queueNotice");
   const buttons = [document.querySelector("#saveQueueButton"), document.querySelector("#publishQueueButton")];
-  if (!productQueue.length) {
-    notice.textContent = "还没有待建立的商品卡。先上传高清图。";
+  const matchedItems = productQueue.filter((item) => item.matched);
+  if (!matchedItems.length) {
+    notice.textContent = "还没有已匹配价格的商品卡。先在上方粘贴快团团价格。";
     return;
   }
   if (status === "published") {
-    const incomplete = productQueue.find((item) => !item.name.trim() || !item.retailPrice || !item.purchaseUrl.trim());
+    const incomplete = matchedItems.find((item) => !item.name.trim() || !item.retailPrice || !item.purchaseUrl.trim());
     if (incomplete) {
       notice.textContent = "发布前，每张商品卡都需要商品名、顾客售价和快团团链接。";
       return;
@@ -447,8 +473,8 @@ async function saveQueuedProducts(status) {
   buttons.forEach((button) => { button.disabled = true; });
   const savedIds = [];
   try {
-    for (const [index, item] of productQueue.entries()) {
-      notice.textContent = `正在保存第 ${index + 1}/${productQueue.length} 张商品卡…`;
+    for (const [index, item] of matchedItems.entries()) {
+      notice.textContent = `正在保存第 ${index + 1}/${matchedItems.length} 张商品卡…`;
       const product = await request("/rest/v1/products", {
         method: "POST",
         headers: { "Content-Type": "application/json", Prefer: "return=representation" },
@@ -576,5 +602,6 @@ async function loadCatalog() {
 
 document.querySelector("#refreshButton").addEventListener("click", loadCatalog);
 document.querySelector("#sku").value = automaticSku();
+document.querySelector("#brandPurchaseUrl").value = localStorage.getItem(BRAND_LINK_KEY) || "";
 renderProductQueue();
 initialise();
