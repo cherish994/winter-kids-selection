@@ -40,7 +40,7 @@ function automaticSku() {
 function readProductQueue() {
   try {
     const saved = JSON.parse(localStorage.getItem(PRODUCT_QUEUE_KEY) || "[]");
-    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl).map((item) => ({ ...item, matched: item.matched === true })) : [];
+    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl).map((item) => ({ ...item, matched: item.matched === true, categoryAuto: item.categoryAuto !== false })) : [];
   } catch { return []; }
 }
 
@@ -55,6 +55,15 @@ function sharedPurchaseUrl() {
 function productNameFromFile(fileName) {
   const name = fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").trim();
   return name && !/^image\b/i.test(name) ? name : "待命名冬季单品";
+}
+
+function suggestCategory(value = "") {
+  const text = String(value).toLowerCase();
+  if (/(vest|조끼|马甲|背心)/i.test(text)) return "马甲";
+  if (/(jacket|coat|outer|fleece|jumper|점퍼|자켓|코트|아우터|外套|夹克|摇粒绒)/i.test(text)) return "外套";
+  if (/(set|two[ -]?piece|上下|套装|세트)/i.test(text)) return "套装";
+  if (/(pajama|sleep|homewear|home wear|lounge|실내|내의|잠옷|家居|居家|睡衣)/i.test(text)) return "居家服";
+  return "冬季单品";
 }
 
 function escapeHtml(value = "") {
@@ -133,7 +142,8 @@ async function restoreTodayProductQueue() {
       sku: automaticSku(),
       brand: "ROTOTO BEBE",
       name: productNameFromFile(item.path.split("/").pop()),
-      category: "居家服",
+      category: suggestCategory(item.path.split("/").pop()),
+      categoryAuto: true,
       retailPrice: "",
       purchaseUrl: sharedPurchaseUrl(),
       coverImageUrl: item.publicUrl,
@@ -307,7 +317,8 @@ async function uploadFiles(files, kind) {
         sku: automaticSku(),
         brand: "ROTOTO BEBE",
         name: productNameFromFile(files[index].name),
-        category: "居家服",
+        category: suggestCategory(files[index].name),
+        categoryAuto: true,
         retailPrice: "",
         purchaseUrl: sharedPurchaseUrl(),
         coverImageUrl: result.publicUrl,
@@ -381,9 +392,9 @@ function renderProductQueue() {
       <div class="queue-card-head"><div><strong>图片 ${String(index + 1).padStart(2, "0")}</strong><small>款号 ${escapeHtml(item.sku)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></div>
       <div class="queue-fields">
         <label>商品名<input data-queue-field="name" value="${escapeHtml(item.name)}" /></label>
-        <label>顾客售价（¥）<input data-queue-field="retailPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.retailPrice)}" placeholder="159" /></label>
+        <label>快团团展示价（¥）<input data-queue-field="retailPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.retailPrice)}" placeholder="159" /></label>
         <label class="queue-wide">快团团链接<input data-queue-field="purchaseUrl" type="url" value="${escapeHtml(item.purchaseUrl)}" placeholder="https://ktt.pinduoduo.com/t/…" /></label>
-        <label>分类<select data-queue-field="category">${categoryOptions(item.category)}</select></label>
+        <label>分类${item.categoryAuto ? `<span class="category-suggestion">智能建议</span>` : ""}<select data-queue-field="category">${categoryOptions(item.category)}</select></label>
       </div>
     </div>
   </article>`).join("")}` : "";
@@ -394,6 +405,8 @@ function updateQueueItem(id, field, value) {
   const item = productQueue.find((entry) => entry.id === id);
   if (!item) return;
   item[field] = value;
+  if (field === "name" && item.categoryAuto) item.category = suggestCategory(value);
+  if (field === "category") item.categoryAuto = false;
   saveProductQueue();
 }
 
@@ -450,9 +463,10 @@ document.querySelector("#brandPurchaseUrl").addEventListener("input", (event) =>
   const link = event.target.value.trim();
   localStorage.setItem(BRAND_LINK_KEY, link);
   if (!link) return;
-  productQueue = productQueue.map((item) => item.purchaseUrl ? item : { ...item, purchaseUrl: link });
+  productQueue = productQueue.map((item) => ({ ...item, purchaseUrl: link }));
   saveProductQueue();
   renderProductQueue();
+  document.querySelector("#batchNotice").textContent = `品牌链接已同步到当前 ${productQueue.length} 张素材；以后新上传的图片也会自动使用它。`;
 });
 
 async function saveQueuedProducts(status) {
