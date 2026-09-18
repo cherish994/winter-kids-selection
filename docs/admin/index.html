@@ -44,35 +44,38 @@
           <div class="upload-grid">
             <label class="drop-zone private-zone" for="sourceFiles"><span>快团团截图</span><small>可一次选多张，内部可见</small><input id="sourceFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
             <label class="drop-zone public-zone" for="highResFiles"><span>官方高清图</span><small>可一次选多张，等待匹配发布</small><input id="highResFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
+            <label class="drop-zone size-zone" for="sizeChartFiles"><span>尺码表</span><small>上传图片，顾客可在商品页查看</small><input id="sizeChartFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple /></label>
           </div>
-          <div class="upload-actions"><button type="button" id="uploadButton">上传所选素材 <span>→</span></button><p id="uploadNotice" class="form-notice">建议每张图片不超过 6 MB。</p></div>
+          <div class="upload-actions"><button type="button" id="uploadButton" hidden>重新上传素材</button><p id="uploadNotice" class="form-notice">选择素材后会自动上传。建议每张图片不超过 6 MB。</p></div>
           <div class="upload-list" id="uploadList" aria-live="polite"></div>
         </section>
 
+        <section class="import-panel" aria-labelledby="import-title">
+          <div class="panel-heading"><div><p class="eyebrow">02 / OFFICIAL IMPORT</p><h2 id="import-title">粘贴官网链接</h2></div><p>OOTT BEBE 的商品名称、描述和主图会自动带入；你只需要补充顾客售价与对应快团团链接。</p></div>
+          <div class="import-row"><input id="officialProductUrl" type="url" placeholder="粘贴 OOTT BEBE 商品详情页链接" disabled /><button type="button" id="importOfficialButton" disabled>自动带入资料（连接中）</button></div>
+          <p id="importNotice" class="form-notice">自动导入服务正在接入；服务开通后，这里会直接可用。</p>
+        </section>
+
         <section class="product-panel" aria-labelledby="product-title">
-          <div class="panel-heading"><div><p class="eyebrow">02 / PRODUCT</p><h2 id="product-title">建立商品卡</h2></div><p>保存为“待审核”后，确认零售价和购买链接，再发布到前台。</p></div>
+          <div class="panel-heading"><div><p class="eyebrow">03 / PRODUCT</p><h2 id="product-title">确认商品卡</h2></div><p>保存为“待审核”后，确认零售价和购买链接，再发布到前台。</p></div>
           <form id="productForm" class="product-form">
-            <label>货号<input id="sku" required placeholder="例如 324" /></label>
+            <label>款号<input id="sku" required placeholder="例如 324；官网导入后会自动填入" /></label>
             <label>品牌<input id="brand" value="ROTOTO BEBE" required /></label>
             <label class="wide">商品名称<input id="productName" required placeholder="例如 复古撞色居家服" /></label>
             <label>分类<select id="category"><option>居家服</option><option>套装</option><option>马甲</option><option>外套</option><option>冬季单品</option></select></label>
-            <label>场景<input id="scenes" placeholder="日常, 送礼, 周岁, 出行" /></label>
-            <label>适穿年龄<input id="ageGroups" placeholder="例如 1–5 岁" /></label>
-            <label>最低身高（cm）<input id="heightMin" type="number" min="40" max="170" placeholder="80" /></label>
-            <label>最高身高（cm）<input id="heightMax" type="number" min="40" max="170" placeholder="110" /></label>
+            <label>场景（可选）<input id="scenes" placeholder="日常, 送礼, 周岁, 出行" /></label>
             <label>顾客售价（¥）<input id="retailPrice" type="number" min="0" step="0.01" placeholder="199" /></label>
-            <label class="wide">购买链接<input id="purchaseUrl" type="url" placeholder="https://…" /></label>
+            <label class="wide">快团团购买链接<input id="purchaseUrl" type="url" placeholder="粘贴这件商品对应的快团团链接" /></label>
             <label class="wide">商品说明<textarea id="description" rows="3" placeholder="为顾客写一句简短、真实的商品描述"></textarea></label>
-            <label>来源售价（内部）<input id="sourcePrice" type="number" min="0" step="0.01" placeholder="仅店主可见" /></label>
-            <label>帮卖佣金（内部）<input id="commission" type="number" min="0" step="0.01" placeholder="仅店主可见" /></label>
-            <label class="wide">封面高清图网址<input id="coverImageUrl" type="url" placeholder="上传高清图后自动填入，也可粘贴已审核图片网址" /></label>
-            <label class="wide">截图素材路径（内部）<input id="sourceScreenshotPath" placeholder="上传截图后自动填入" /></label>
-            <div class="form-footer"><p class="form-notice" id="productNotice">保存时会自动计算内部实际成本；不会发送到顾客端。</p><div><button class="secondary-button" type="submit" data-status="review">存为待审核</button><button type="submit" data-status="published">确认发布 →</button></div></div>
+            <input id="coverImageUrl" type="hidden" />
+            <input id="sizeChartUrl" type="hidden" />
+            <p class="asset-summary">高清封面与尺码表会在上方上传后自动带入，无需再填写网址。</p>
+            <div class="form-footer"><p class="form-notice" id="productNotice">快团截图会先作为内部匹配素材保存；成本识别会在后续审核流程补充。</p><div><button class="secondary-button" type="submit" data-status="review">存为待审核</button><button type="submit" data-status="published">确认发布 →</button></div></div>
           </form>
         </section>
 
         <section class="catalog-panel" aria-labelledby="catalog-title">
-          <div class="panel-heading"><div><p class="eyebrow">03 / REVIEW</p><h2 id="catalog-title">本季商品</h2></div><button class="text-button" type="button" id="refreshButton">刷新列表 ↻</button></div>
+          <div class="panel-heading"><div><p class="eyebrow">04 / REVIEW</p><h2 id="catalog-title">本季商品</h2></div><button class="text-button" type="button" id="refreshButton">刷新列表 ↻</button></div>
           <div id="catalogList" class="catalog-list" aria-live="polite"></div>
         </section>
       </section>

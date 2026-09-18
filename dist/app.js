@@ -28,18 +28,19 @@ function normalizeProduct(row) {
     name: row.name,
     category: row.category || "冬季单品",
     scenes: Array.isArray(row.scenes) ? row.scenes : [],
-    ages: Array.isArray(row.age_groups) ? row.age_groups.join(" · ") : (row.age_groups || "以尺码表为准"),
+    ages: Array.isArray(row.age_groups) && row.age_groups.length ? row.age_groups.join(" · ") : (row.age_groups || "以尺码表为准"),
     range: row.height_min && row.height_max ? `${row.height_min}–${row.height_max} cm` : "以尺码表为准",
     description: row.description || "",
     price: row.retail_price ? `¥${Number(row.retail_price).toFixed(0)}` : "新品预告",
     purchaseUrl: row.purchase_url,
     coverImage: row.cover_image_url,
+    sizeChart: (Array.isArray(row.product_images) ? row.product_images : []).find((image) => image.alt_text === "尺码表")?.image_url,
     color: "#ececec"
   };
 }
 
 async function loadPublishedProducts() {
-  const endpoint = `${SUPABASE_URL}/rest/v1/products?select=id,sku,brand,name,category,description,age_groups,scenes,height_min,height_max,retail_price,purchase_url,cover_image_url&status=eq.published&order=published_at.desc`;
+  const endpoint = `${SUPABASE_URL}/rest/v1/products?select=id,sku,brand,name,category,description,age_groups,scenes,height_min,height_max,retail_price,purchase_url,cover_image_url,product_images(image_url,alt_text,sort_order)&status=eq.published&order=published_at.desc`;
   try {
     const response = await fetch(endpoint, {
       headers: {
@@ -89,6 +90,9 @@ function openProduct(id) {
   document.querySelector("#dialogTitle").textContent = product.name;
   document.querySelector("#dialogDescription").textContent = product.description;
   document.querySelector("#dialogMeta").innerHTML = `<span>${product.ages}</span><span>${product.range}</span><span>${product.category}</span>`;
+  const sizeChart = document.querySelector("#dialogSizeChart");
+  sizeChart.hidden = !product.sizeChart;
+  if (product.sizeChart) sizeChart.href = product.sizeChart;
   document.querySelector("#dialogPrice").textContent = product.price || "新品预告";
   const action = document.querySelector("#dialogAction");
   if (product.purchaseUrl) {

@@ -10,6 +10,7 @@ const uploadNotice = document.querySelector("#uploadNotice");
 const productNotice = document.querySelector("#productNotice");
 const sourceFiles = document.querySelector("#sourceFiles");
 const highResFiles = document.querySelector("#highResFiles");
+const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
 let session = readSession();
 
@@ -154,14 +155,6 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
   showLogin("已退出店主后台。");
 });
 
-function renderSelectedFiles() {
-  const files = [...sourceFiles.files, ...highResFiles.files];
-  uploadList.innerHTML = files.map((file) => `<div class="upload-item"><strong>${escapeHtml(file.name)}</strong><small>${Math.ceil(file.size / 1024)} KB · 等待上传</small></div>`).join("");
-}
-
-sourceFiles.addEventListener("change", renderSelectedFiles);
-highResFiles.addEventListener("change", renderSelectedFiles);
-
 async function uploadOne(file, bucket, prefix) {
   const path = filePath(prefix, file);
   await request(`/storage/v1/object/${bucket}/${pathsafe(path)}`, {
@@ -172,29 +165,64 @@ async function uploadOne(file, bucket, prefix) {
   return { path, publicUrl: bucket === "product-public" ? publicImageUrl(path) : "" };
 }
 
-document.querySelector("#uploadButton").addEventListener("click", async () => {
-  const source = [...sourceFiles.files];
-  const highRes = [...highResFiles.files];
-  if (!source.length && !highRes.length) {
-    uploadNotice.textContent = "请先选择截图或高清图。";
-    return;
-  }
-  const button = document.querySelector("#uploadButton");
-  button.disabled = true;
-  uploadNotice.textContent = "正在上传素材…";
+function renderUploadItems(items) {
+  uploadList.innerHTML = items.map((item) => `<div class="upload-item"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.kind)}</small></div>`).join("");
+}
+
+async function uploadFiles(files, kind) {
+  if (!files.length) return;
+  const description = kind === "source" ? "快团团截图" : kind === "size" ? "尺码表" : "官方高清图";
+  renderUploadItems(files.map((file) => ({ label: file.name, kind: "正在上传…" })));
+  uploadNotice.textContent = `正在保存${description}…`;
   try {
     const batchPrefix = `batches/${new Date().toISOString().slice(0, 10)}`;
-    const sourceResults = [];
-    const highResResults = [];
-    for (const file of source) sourceResults.push(await uploadOne(file, "product-private", `${batchPrefix}/screenshots`));
-    for (const file of highRes) highResResults.push(await uploadOne(file, "product-public", `${batchPrefix}/high-res`));
-    if (sourceResults[0]) document.querySelector("#sourceScreenshotPath").value = sourceResults[0].path;
-    if (highResResults[0]) document.querySelector("#coverImageUrl").value = highResResults[0].publicUrl;
-    uploadList.innerHTML = [...sourceResults.map((result) => ({ label: result.path, kind: "内部截图已保存" })), ...highResResults.map((result) => ({ label: result.path, kind: "高清图已保存" }))]
-      .map((item) => `<div class="upload-item"><strong>${escapeHtml(item.label.split("/").pop())}</strong><small>${item.kind}</small></div>`).join("");
-    uploadNotice.textContent = `已上传 ${sourceResults.length + highResResults.length} 张素材；第一张已自动带入商品表单。`;
+    const bucket = kind === "source" ? "product-private" : "product-public";
+    const folder = kind === "source" ? "screenshots" : kind === "size" ? "size-charts" : "high-res";
+    const results = [];
+    for (const file of files) results.push(await uploadOne(file, bucket, `${batchPrefix}/${folder}`));
+    if (kind === "high-res" && results[0]) document.querySelector("#coverImageUrl").value = results[0].publicUrl;
+    if (kind === "size" && results[0]) document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
+    renderUploadItems(results.map((result) => ({ label: result.path.split("/").pop(), kind: `${description}已保存` })));
+    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" || kind === "size" ? "；第一张已带入商品卡" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = error.message;
+  }
+}
+
+sourceFiles.addEventListener("change", () => uploadFiles([...sourceFiles.files], "source"));
+highResFiles.addEventListener("change", () => uploadFiles([...highResFiles.files], "high-res"));
+sizeChartFiles.addEventListener("change", () => uploadFiles([...sizeChartFiles.files], "size"));
+document.querySelector("#uploadButton").addEventListener("click", () => {
+  uploadFiles([...sourceFiles.files], "source");
+  uploadFiles([...highResFiles.files], "high-res");
+  uploadFiles([...sizeChartFiles.files], "size");
+});
+
+document.querySelector("#importOfficialButton").addEventListener("click", async () => {
+  const input = document.querySelector("#officialProductUrl");
+  const button = document.querySelector("#importOfficialButton");
+  const notice = document.querySelector("#importNotice");
+  if (!input.value.trim()) {
+    notice.textContent = "请先粘贴 OOTT BEBE 商品详情页链接。";
+    return;
+  }
+  button.disabled = true;
+  notice.textContent = "正在读取官网商品资料…";
+  try {
+    const imported = await request("/functions/v1/import-oottbebe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: input.value.trim() })
+    });
+    document.querySelector("#sku").value = imported.sku || "";
+    document.querySelector("#brand").value = imported.brand || "OOTT BEBE";
+    document.querySelector("#productName").value = imported.name || "";
+    document.querySelector("#description").value = imported.description || "";
+    if (imported.coverImageUrl) document.querySelector("#coverImageUrl").value = imported.coverImageUrl;
+    notice.textContent = imported.imageWarning || "资料已带入商品卡；现在只需补充顾客售价和购买链接。";
+    document.querySelector("#productForm").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    notice.textContent = error.message || "官网资料暂时无法读取。";
   } finally {
     button.disabled = false;
   }
@@ -204,20 +232,16 @@ function splitValues(value) {
   return value.split(/[,，]/).map((item) => item.trim()).filter(Boolean);
 }
 
-function nullableNumber(value) {
-  return value === "" ? null : Number(value);
-}
-
 document.querySelector("#productForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const status = event.submitter.dataset.status;
   const buttons = event.currentTarget.querySelectorAll("button[type=submit]");
   buttons.forEach((button) => { button.disabled = true; });
   productNotice.textContent = "正在保存商品…";
-  const sourcePrice = document.querySelector("#sourcePrice").value;
-  const commission = document.querySelector("#commission").value;
-  if ((sourcePrice === "") !== (commission === "")) {
-    productNotice.textContent = "内部来源售价和佣金请同时填写，或同时留空。";
+  const retailPrice = document.querySelector("#retailPrice").value;
+  const purchaseUrl = document.querySelector("#purchaseUrl").value.trim();
+  if (status === "published" && (!retailPrice || !purchaseUrl)) {
+    productNotice.textContent = "发布前请填写顾客售价和购买链接。";
     buttons.forEach((button) => { button.disabled = false; });
     return;
   }
@@ -231,11 +255,8 @@ document.querySelector("#productForm").addEventListener("submit", async (event) 
         name: document.querySelector("#productName").value.trim(),
         category: document.querySelector("#category").value,
         scenes: splitValues(document.querySelector("#scenes").value),
-        age_groups: splitValues(document.querySelector("#ageGroups").value),
-        height_min: nullableNumber(document.querySelector("#heightMin").value),
-        height_max: nullableNumber(document.querySelector("#heightMax").value),
-        retail_price: nullableNumber(document.querySelector("#retailPrice").value),
-        purchase_url: document.querySelector("#purchaseUrl").value.trim() || null,
+        retail_price: retailPrice === "" ? null : Number(retailPrice),
+        purchase_url: purchaseUrl || null,
         description: document.querySelector("#description").value.trim() || null,
         cover_image_url: document.querySelector("#coverImageUrl").value.trim() || null,
         status,
@@ -243,15 +264,16 @@ document.querySelector("#productForm").addEventListener("submit", async (event) 
       })
     });
     const saved = Array.isArray(product) ? product[0] : product;
-    if (sourcePrice !== "") {
-      await request("/rest/v1/product_sources", {
+    const sizeChartUrl = document.querySelector("#sizeChartUrl").value.trim();
+    if (sizeChartUrl) {
+      await request("/rest/v1/product_images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           product_id: saved.id,
-          source_screenshot_path: document.querySelector("#sourceScreenshotPath").value.trim() || null,
-          ktt_sale_price: Number(sourcePrice),
-          affiliate_commission: Number(commission)
+          image_url: sizeChartUrl,
+          alt_text: "尺码表",
+          sort_order: 99
         })
       });
     }

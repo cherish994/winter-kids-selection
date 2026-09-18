@@ -111,6 +111,7 @@ footer small { text-align: right; }
 .dialog-content > p:not(.eyebrow):not(.dialog-price) { color: #555; font-size: 14px; line-height: 1.7; }
 .dialog-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
 .dialog-meta span { padding: 6px 8px; border: 1px solid var(--line); font-size: 11px; }
+.dialog-size-chart { display:inline-block; margin: 0 0 18px; border-bottom:1px solid var(--ink); padding-bottom:3px; font-size:12px; font-weight:700; }
 .dialog-price { margin: 0 0 20px; font-size: 19px; font-weight: 700; }
 .dialog-action { display: block; padding: 14px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; }
 .dialog-action span { float: right; }
