@@ -41,14 +41,24 @@ function authHeaders(extra = {}) {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
-    ...options,
-    headers: authHeaders(options.headers)
-  });
-  const type = response.headers.get("content-type") || "";
-  const body = type.includes("application/json") ? await response.json().catch(() => ({})) : await response.text();
-  if (!response.ok) throw new Error(body?.message || body?.error_description || body?.hint || "操作没有完成，请稍后重试。");
-  return body;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 45000);
+  try {
+    const response = await fetch(`${SUPABASE_URL}${path}`, {
+      ...options,
+      signal: options.signal || controller.signal,
+      headers: authHeaders(options.headers)
+    });
+    const type = response.headers.get("content-type") || "";
+    const body = type.includes("application/json") ? await response.json().catch(() => ({})) : await response.text();
+    if (!response.ok) throw new Error(body?.message || body?.error_description || body?.hint || "操作没有完成，请稍后重试。");
+    return body;
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("上传超过 45 秒仍未完成。请检查网络后重新选择这张图片。\n");
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function pathsafe(value) {
@@ -172,25 +182,47 @@ function renderUploadItems(items) {
 async function uploadFiles(files, kind) {
   if (!files.length) return;
   const description = kind === "source" ? "快团团截图" : kind === "size" ? "尺码表" : "官方高清图";
+  const unsupported = files.find((file) => !/^image\/(png|jpe?g|webp|heic|heif)$/i.test(file.type));
+  const tooLarge = files.find((file) => file.size > 15 * 1024 * 1024);
+  if (unsupported) {
+    uploadNotice.textContent = `「${unsupported.name}」不是支持的图片格式。请使用 PNG、JPG、WebP 或 HEIC。`;
+    return;
+  }
+  if (tooLarge) {
+    uploadNotice.textContent = `「${tooLarge.name}」超过 15 MB，请压缩后再上传。`;
+    return;
+  }
+  if (!session?.access_token) {
+    uploadNotice.textContent = "登录状态已失效，请重新用店主邮箱登录后再上传。";
+    return;
+  }
   const localPreviews = files.map((file) => URL.createObjectURL(file));
-  renderUploadItems(files.map((file, index) => ({ label: file.name, kind: "正在上传…", previewUrl: localPreviews[index] })));
+  const items = files.map((file, index) => ({ label: file.name, kind: "等待上传", previewUrl: localPreviews[index] }));
+  renderUploadItems(items);
   uploadNotice.textContent = `正在保存${description}…`;
   try {
     const batchPrefix = `batches/${new Date().toISOString().slice(0, 10)}`;
     const bucket = kind === "source" ? "product-private" : "product-public";
     const folder = kind === "source" ? "screenshots" : kind === "size" ? "size-charts" : "high-res";
     const results = [];
-    for (const file of files) results.push(await uploadOne(file, bucket, `${batchPrefix}/${folder}`));
+    for (const [index, file] of files.entries()) {
+      items[index].kind = "正在上传…";
+      renderUploadItems(items);
+      uploadNotice.textContent = `正在保存${description}（${index + 1}/${files.length}）…`;
+      const result = await uploadOne(file, bucket, `${batchPrefix}/${folder}`);
+      results.push(result);
+      items[index] = {
+        label: result.path.split("/").pop(),
+        kind: `${description}已保存`,
+        previewUrl: result.publicUrl || localPreviews[index]
+      };
+      renderUploadItems(items);
+    }
     if (kind === "high-res" && results[0]) document.querySelector("#coverImageUrl").value = results[0].publicUrl;
     if (kind === "size" && results[0]) document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
-    renderUploadItems(results.map((result, index) => ({
-      label: result.path.split("/").pop(),
-      kind: `${description}已保存`,
-      previewUrl: result.publicUrl || localPreviews[index]
-    })));
     uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" || kind === "size" ? "；第一张已带入商品卡" : ""}。`;
   } catch (error) {
-    uploadNotice.textContent = error.message;
+    uploadNotice.textContent = `${error.message} 这张图没有保存，请重新选择后重试。`;
   }
 }
 
