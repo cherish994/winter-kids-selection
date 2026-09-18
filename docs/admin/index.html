@@ -57,9 +57,18 @@
         </section>
 
         <section class="product-panel" aria-labelledby="product-title">
-          <div class="panel-heading"><div><p class="eyebrow">03 / PRODUCT</p><h2 id="product-title">确认商品卡</h2></div><p>保存为“待审核”后，确认零售价和购买链接，再发布到前台。</p></div>
-          <form id="productForm" class="product-form">
-            <label>款号<input id="sku" required placeholder="例如 324；官网导入后会自动填入" /></label>
+          <div class="panel-heading"><div><p class="eyebrow">03 / PRODUCT QUEUE</p><h2 id="product-title">按图片建立商品卡</h2></div><p>每张高清图都会有一张待上架卡；款号自动生成，按图片顺序批量粘贴售价和快团团链接即可。</p></div>
+          <div class="batch-panel">
+            <label for="batchInfo">批量粘贴售价和快团团链接</label>
+            <textarea id="batchInfo" rows="4" placeholder="每行一件，顺序对应下方图片：\n159 https://ktt.pinduoduo.com/t/…\n79 https://ktt.pinduoduo.com/t/…"></textarea>
+            <div><button type="button" class="secondary-button" id="applyBatchButton">填入下方商品卡</button><p class="form-notice" id="batchNotice">可从表格直接复制两列：售价、快团团链接。</p></div>
+          </div>
+          <div id="queueList" class="queue-list" aria-live="polite"><p class="empty">上传高清图后，商品卡会显示在这里。</p></div>
+          <div class="queue-actions"><p class="form-notice" id="queueNotice">素材中的快团团截图会保留给后续 AI 匹配，不会展示给顾客。</p><div><button class="secondary-button" type="button" id="saveQueueButton">批量存为待审核</button><button type="button" id="publishQueueButton">批量确认发布 →</button></div></div>
+          <details class="manual-product">
+            <summary>没有高清图时，单独补录一件商品</summary>
+            <form id="productForm" class="product-form">
+            <label>款号（自动生成）<input id="sku" required readonly /></label>
             <label>品牌<input id="brand" value="ROTOTO BEBE" required /></label>
             <label class="wide">商品名称<input id="productName" required placeholder="例如 复古撞色居家服" /></label>
             <label>分类<select id="category"><option>居家服</option><option>套装</option><option>马甲</option><option>外套</option><option>冬季单品</option></select></label>
@@ -71,7 +80,8 @@
             <input id="sizeChartUrl" type="hidden" />
             <p class="asset-summary">高清封面与尺码表会在上方上传后自动带入，无需再填写网址。</p>
             <div class="form-footer"><p class="form-notice" id="productNotice">快团截图会先作为内部匹配素材保存；成本识别会在后续审核流程补充。</p><div><button class="secondary-button" type="submit" data-status="review">存为待审核</button><button type="submit" data-status="published">确认发布 →</button></div></div>
-          </form>
+            </form>
+          </details>
         </section>
 
         <section class="catalog-panel" aria-labelledby="catalog-title">

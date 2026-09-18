@@ -12,7 +12,9 @@ const sourceFiles = document.querySelector("#sourceFiles");
 const highResFiles = document.querySelector("#highResFiles");
 const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
+const PRODUCT_QUEUE_KEY = "winter-kids-product-queue";
 let session = readSession();
+let productQueue = readProductQueue();
 
 function readSession() {
   try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
@@ -26,6 +28,28 @@ function saveSession(nextSession) {
 function clearSession() {
   session = null;
   localStorage.removeItem(SESSION_KEY);
+}
+
+function automaticSku() {
+  const now = new Date();
+  const date = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  return `WK-${date}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
+}
+
+function readProductQueue() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PRODUCT_QUEUE_KEY) || "[]");
+    return Array.isArray(saved) ? saved.filter((item) => item && item.coverImageUrl) : [];
+  } catch { return []; }
+}
+
+function saveProductQueue() {
+  localStorage.setItem(PRODUCT_QUEUE_KEY, JSON.stringify(productQueue));
+}
+
+function productNameFromFile(fileName) {
+  const name = fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").trim();
+  return name && !/^image\b/i.test(name) ? name : "待命名冬季单品";
 }
 
 function escapeHtml(value = "") {
@@ -72,6 +96,51 @@ function filePath(prefix, file) {
 
 function publicImageUrl(path) {
   return `${SUPABASE_URL}/storage/v1/object/public/product-public/${pathsafe(path)}`;
+}
+
+function todayBatchFolder(folder) {
+  return `batches/${new Date().toISOString().slice(0, 10)}/${folder}`;
+}
+
+async function listStoredImages(folder) {
+  const prefix = todayBatchFolder(folder);
+  const objects = await request("/storage/v1/object/list/product-public", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prefix, limit: 100, offset: 0, sortBy: { column: "created_at", order: "asc" } })
+  });
+  return Array.isArray(objects) ? objects.map((object) => {
+    const path = object.name.includes("/") ? object.name : `${prefix}/${object.name}`;
+    return { path, publicUrl: publicImageUrl(path) };
+  }).filter((object) => /\.(png|jpe?g|webp|heic|heif)$/i.test(object.path)) : [];
+}
+
+async function restoreTodayProductQueue() {
+  if (!session?.access_token) return;
+  try {
+    const [storedHighRes, storedSizeCharts] = await Promise.all([listStoredImages("high-res"), listStoredImages("size-charts")]);
+    const queuedUrls = new Set(productQueue.map((item) => item.coverImageUrl));
+    const defaultSizeChart = storedSizeCharts.at(-1)?.publicUrl || "";
+    const recovered = storedHighRes.filter((item) => !queuedUrls.has(item.publicUrl));
+    if (!recovered.length) return;
+    productQueue.push(...recovered.map((item) => ({
+      id: crypto.randomUUID(),
+      sku: automaticSku(),
+      brand: "ROTOTO BEBE",
+      name: productNameFromFile(item.path.split("/").pop()),
+      category: "居家服",
+      retailPrice: "",
+      purchaseUrl: "",
+      coverImageUrl: item.publicUrl,
+      sizeChartUrl: defaultSizeChart
+    })));
+    if (defaultSizeChart) document.querySelector("#sizeChartUrl").value = defaultSizeChart;
+    saveProductQueue();
+    renderProductQueue();
+    document.querySelector("#queueNotice").textContent = `已找回今天上传的 ${recovered.length} 张高清图，并建立待上架卡。`;
+  } catch {
+    // The queue remains usable when listing a storage folder is not available for this role.
+  }
 }
 
 function captureMagicLinkSession() {
@@ -121,6 +190,7 @@ function showWorkspace(user) {
   workspace.hidden = false;
   document.querySelector("#logoutButton").hidden = false;
   document.querySelector("#adminIdentity").textContent = user.email || "店主";
+  restoreTodayProductQueue();
   loadCatalog();
 }
 
@@ -219,7 +289,27 @@ async function uploadFiles(files, kind) {
       renderUploadItems(items);
     }
     if (kind === "high-res" && results[0]) document.querySelector("#coverImageUrl").value = results[0].publicUrl;
-    if (kind === "size" && results[0]) document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
+    if (kind === "size" && results[0]) {
+      document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
+      productQueue = productQueue.map((item) => item.sizeChartUrl ? item : { ...item, sizeChartUrl: results[0].publicUrl });
+      saveProductQueue();
+      renderProductQueue();
+    }
+    if (kind === "high-res") {
+      productQueue.push(...results.map((result, index) => ({
+        id: crypto.randomUUID(),
+        sku: automaticSku(),
+        brand: "ROTOTO BEBE",
+        name: productNameFromFile(files[index].name),
+        category: "居家服",
+        retailPrice: "",
+        purchaseUrl: "",
+        coverImageUrl: result.publicUrl,
+        sizeChartUrl: document.querySelector("#sizeChartUrl").value.trim()
+      })));
+      saveProductQueue();
+      renderProductQueue();
+    }
     uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" || kind === "size" ? "；第一张已带入商品卡" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = `${error.message} 这张图没有保存，请重新选择后重试。`;
@@ -264,6 +354,144 @@ document.querySelector("#importOfficialButton").addEventListener("click", async 
     button.disabled = false;
   }
 });
+
+function categoryOptions(selected) {
+  return ["居家服", "套装", "马甲", "外套", "冬季单品"].map((category) => `<option${category === selected ? " selected" : ""}>${category}</option>`).join("");
+}
+
+function renderProductQueue() {
+  const list = document.querySelector("#queueList");
+  if (!productQueue.length) {
+    list.innerHTML = `<p class="empty">上传高清图后，商品卡会显示在这里。</p>`;
+    return;
+  }
+  list.innerHTML = productQueue.map((item, index) => `<article class="queue-card" data-queue-id="${item.id}">
+    <img class="queue-image" src="${escapeHtml(item.coverImageUrl)}" alt="${escapeHtml(item.name || `商品图片 ${index + 1}`)}" />
+    <div class="queue-card-body">
+      <div class="queue-card-head"><div><strong>图片 ${String(index + 1).padStart(2, "0")}</strong><small>款号 ${escapeHtml(item.sku)}</small></div><button class="queue-remove" type="button" data-queue-remove="${item.id}">移除</button></div>
+      <div class="queue-fields">
+        <label>商品名<input data-queue-field="name" value="${escapeHtml(item.name)}" /></label>
+        <label>顾客售价（¥）<input data-queue-field="retailPrice" type="number" min="0" step="0.01" value="${escapeHtml(item.retailPrice)}" placeholder="159" /></label>
+        <label class="queue-wide">快团团链接<input data-queue-field="purchaseUrl" type="url" value="${escapeHtml(item.purchaseUrl)}" placeholder="https://ktt.pinduoduo.com/t/…" /></label>
+        <label>分类<select data-queue-field="category">${categoryOptions(item.category)}</select></label>
+      </div>
+    </div>
+  </article>`).join("");
+}
+
+function updateQueueItem(id, field, value) {
+  const item = productQueue.find((entry) => entry.id === id);
+  if (!item) return;
+  item[field] = value;
+  saveProductQueue();
+}
+
+document.querySelector("#queueList").addEventListener("input", (event) => {
+  const field = event.target.dataset.queueField;
+  const card = event.target.closest("[data-queue-id]");
+  if (field && card) updateQueueItem(card.dataset.queueId, field, event.target.value);
+});
+
+document.querySelector("#queueList").addEventListener("change", (event) => {
+  const field = event.target.dataset.queueField;
+  const card = event.target.closest("[data-queue-id]");
+  if (field && card) updateQueueItem(card.dataset.queueId, field, event.target.value);
+});
+
+document.querySelector("#queueList").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-queue-remove]");
+  if (!button) return;
+  productQueue = productQueue.filter((item) => item.id !== button.dataset.queueRemove);
+  saveProductQueue();
+  renderProductQueue();
+});
+
+document.querySelector("#applyBatchButton").addEventListener("click", () => {
+  const lines = document.querySelector("#batchInfo").value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const notice = document.querySelector("#batchNotice");
+  if (!productQueue.length) {
+    notice.textContent = "请先上传高清图，系统才能知道每行信息该填到哪张商品卡。";
+    return;
+  }
+  if (!lines.length) {
+    notice.textContent = "请粘贴售价和快团团链接，每行对应一张图片。";
+    return;
+  }
+  let applied = 0;
+  lines.slice(0, productQueue.length).forEach((line, index) => {
+    const price = line.match(/(?:¥|￥)?\s*(\d+(?:\.\d{1,2})?)/)?.[1];
+    const link = line.match(/https?:\/\/\S+/i)?.[0];
+    if (price) productQueue[index].retailPrice = price;
+    if (link) productQueue[index].purchaseUrl = link;
+    if (price || link) applied += 1;
+  });
+  saveProductQueue();
+  renderProductQueue();
+  notice.textContent = applied ? `已按顺序填入 ${applied} 张商品卡。` : "没有识别到售价或完整链接，请检查粘贴内容。";
+});
+
+async function saveQueuedProducts(status) {
+  const notice = document.querySelector("#queueNotice");
+  const buttons = [document.querySelector("#saveQueueButton"), document.querySelector("#publishQueueButton")];
+  if (!productQueue.length) {
+    notice.textContent = "还没有待建立的商品卡。先上传高清图。";
+    return;
+  }
+  if (status === "published") {
+    const incomplete = productQueue.find((item) => !item.name.trim() || !item.retailPrice || !item.purchaseUrl.trim());
+    if (incomplete) {
+      notice.textContent = "发布前，每张商品卡都需要商品名、顾客售价和快团团链接。";
+      return;
+    }
+  }
+  buttons.forEach((button) => { button.disabled = true; });
+  const savedIds = [];
+  try {
+    for (const [index, item] of productQueue.entries()) {
+      notice.textContent = `正在保存第 ${index + 1}/${productQueue.length} 张商品卡…`;
+      const product = await request("/rest/v1/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({
+          sku: item.sku,
+          brand: item.brand || "ROTOTO BEBE",
+          name: item.name.trim(),
+          category: item.category || "冬季单品",
+          retail_price: item.retailPrice === "" ? null : Number(item.retailPrice),
+          purchase_url: item.purchaseUrl.trim() || null,
+          cover_image_url: item.coverImageUrl,
+          status,
+          published_at: status === "published" ? new Date().toISOString() : null
+        })
+      });
+      const saved = Array.isArray(product) ? product[0] : product;
+      if (item.sizeChartUrl) {
+        await request("/rest/v1/product_images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product_id: saved.id, image_url: item.sizeChartUrl, alt_text: "尺码表", sort_order: 99 })
+        });
+      }
+      savedIds.push(item.id);
+    }
+    productQueue = productQueue.filter((item) => !savedIds.includes(item.id));
+    saveProductQueue();
+    renderProductQueue();
+    document.querySelector("#batchInfo").value = "";
+    notice.textContent = status === "published" ? "已发布。顾客端刷新后即可看到这些商品。" : "已保存到待审核商品。";
+    loadCatalog();
+  } catch (error) {
+    productQueue = productQueue.filter((item) => !savedIds.includes(item.id));
+    saveProductQueue();
+    renderProductQueue();
+    notice.textContent = `${error.message} 已保存的商品不会重复保存，其余商品仍留在这里。`;
+  } finally {
+    buttons.forEach((button) => { button.disabled = false; });
+  }
+}
+
+document.querySelector("#saveQueueButton").addEventListener("click", () => saveQueuedProducts("review"));
+document.querySelector("#publishQueueButton").addEventListener("click", () => saveQueuedProducts("published"));
 
 function splitValues(value) {
   return value.split(/[,，]/).map((item) => item.trim()).filter(Boolean);
@@ -316,6 +544,7 @@ document.querySelector("#productForm").addEventListener("submit", async (event) 
     }
     productNotice.textContent = status === "published" ? "已发布，顾客端将在刷新后看到它。" : "已保存到待审核商品。";
     event.currentTarget.reset();
+    document.querySelector("#sku").value = automaticSku();
     document.querySelector("#brand").value = "ROTOTO BEBE";
     loadCatalog();
   } catch (error) {
@@ -346,4 +575,6 @@ async function loadCatalog() {
 }
 
 document.querySelector("#refreshButton").addEventListener("click", loadCatalog);
+document.querySelector("#sku").value = automaticSku();
+renderProductQueue();
 initialise();
