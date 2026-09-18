@@ -166,13 +166,14 @@ async function uploadOne(file, bucket, prefix) {
 }
 
 function renderUploadItems(items) {
-  uploadList.innerHTML = items.map((item) => `<div class="upload-item"><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.kind)}</small></div>`).join("");
+  uploadList.innerHTML = items.map((item) => `<div class="upload-item">${item.previewUrl ? `<img src="${escapeHtml(item.previewUrl)}" alt="${escapeHtml(item.label)}" />` : ""}<div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.kind)}</small></div></div>`).join("");
 }
 
 async function uploadFiles(files, kind) {
   if (!files.length) return;
   const description = kind === "source" ? "快团团截图" : kind === "size" ? "尺码表" : "官方高清图";
-  renderUploadItems(files.map((file) => ({ label: file.name, kind: "正在上传…" })));
+  const localPreviews = files.map((file) => URL.createObjectURL(file));
+  renderUploadItems(files.map((file, index) => ({ label: file.name, kind: "正在上传…", previewUrl: localPreviews[index] })));
   uploadNotice.textContent = `正在保存${description}…`;
   try {
     const batchPrefix = `batches/${new Date().toISOString().slice(0, 10)}`;
@@ -182,7 +183,11 @@ async function uploadFiles(files, kind) {
     for (const file of files) results.push(await uploadOne(file, bucket, `${batchPrefix}/${folder}`));
     if (kind === "high-res" && results[0]) document.querySelector("#coverImageUrl").value = results[0].publicUrl;
     if (kind === "size" && results[0]) document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
-    renderUploadItems(results.map((result) => ({ label: result.path.split("/").pop(), kind: `${description}已保存` })));
+    renderUploadItems(results.map((result, index) => ({
+      label: result.path.split("/").pop(),
+      kind: `${description}已保存`,
+      previewUrl: result.publicUrl || localPreviews[index]
+    })));
     uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" || kind === "size" ? "；第一张已带入商品卡" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = error.message;

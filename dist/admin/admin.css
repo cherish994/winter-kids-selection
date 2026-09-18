@@ -45,7 +45,9 @@ button { border:1px solid var(--ink); background:var(--ink); color:#fff; padding
 .upload-actions button span { float:right; margin-left:20px; }
 .upload-actions .form-notice { margin:0; }
 .upload-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:20px; }
-.upload-item { padding:11px; border:1px solid var(--line); overflow:hidden; }
+.upload-item { min-height:76px; padding:8px; border:1px solid var(--line); overflow:hidden; display:flex; align-items:center; gap:10px; }
+.upload-item img { width:58px; height:58px; flex:0 0 58px; object-fit:cover; background:#eee; }
+.upload-item > div { min-width:0; }
 .upload-item strong,.upload-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .upload-item strong { font-size:12px; }
 .upload-item small { margin-top:6px; color:#777; font-size:11px; }
