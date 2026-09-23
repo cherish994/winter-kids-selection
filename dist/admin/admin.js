@@ -207,6 +207,7 @@ async function hasAdminAccess(userId) {
 function showLogin(message = "") {
   loginShell.hidden = false;
   workspace.hidden = true;
+  document.querySelector("#passwordSettingsForm").hidden = true;
   document.querySelector("#logoutButton").hidden = true;
   document.querySelector("#adminIdentity").textContent = "店主后台";
   if (message) loginNotice.textContent = message;
@@ -243,19 +244,71 @@ async function initialise() {
 document.querySelector("#loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const email = document.querySelector("#loginEmail").value.trim();
+  const password = document.querySelector("#loginPassword").value;
+  const mode = event.submitter?.dataset.loginMode || "password";
   const button = event.submitter;
   button.disabled = true;
-  loginNotice.textContent = "正在发送登录链接…";
+  loginNotice.textContent = mode === "magic" ? "正在发送登录链接…" : "正在验证密码…";
   try {
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-    await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    if (mode === "magic") {
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, create_user: true })
+      });
+      loginNotice.textContent = "登录链接已发送。请在邮箱中打开它，再回到这里继续。";
+      return;
+    }
+    if (password.length < 8) throw new Error("请输入至少 8 位的密码；首次使用可先发送邮箱登录链接。");
+    const authSession = await request("/auth/v1/token?grant_type=password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, create_user: true })
+      body: JSON.stringify({ email, password })
     });
-    loginNotice.textContent = "登录链接已发送。请在邮箱中打开它，再回到这里继续。";
+    if (!authSession?.access_token) throw new Error("未能完成密码登录，请改用邮箱登录链接。" );
+    saveSession(authSession);
+    document.querySelector("#loginPassword").value = "";
+    await initialise();
   } catch (error) {
-    loginNotice.textContent = error.message;
+    loginNotice.textContent = error.message === "Invalid login credentials" ? "邮箱或密码不正确；首次使用可先发送邮箱登录链接。" : error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.querySelector("#passwordSettingsButton").addEventListener("click", () => {
+  const form = document.querySelector("#passwordSettingsForm");
+  form.hidden = !form.hidden;
+  if (!form.hidden) document.querySelector("#newPassword").focus();
+});
+
+document.querySelector("#passwordSettingsForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const password = document.querySelector("#newPassword").value;
+  const confirmation = document.querySelector("#confirmPassword").value;
+  const notice = document.querySelector("#passwordNotice");
+  const button = event.submitter;
+  if (password.length < 8) {
+    notice.textContent = "密码至少需要 8 位。";
+    return;
+  }
+  if (password !== confirmation) {
+    notice.textContent = "两次输入的密码不一致。";
+    return;
+  }
+  button.disabled = true;
+  notice.textContent = "正在保存密码…";
+  try {
+    await request("/auth/v1/user", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    event.currentTarget.reset();
+    notice.textContent = "密码已设置。下次可直接使用邮箱和密码登录。";
+  } catch (error) {
+    notice.textContent = error.message;
   } finally {
     button.disabled = false;
   }

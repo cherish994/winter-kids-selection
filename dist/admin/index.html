@@ -20,11 +20,14 @@
       <section class="login-shell" id="loginShell">
         <p class="eyebrow">CATALOG STUDIO / WINTER 26</p>
         <h1>整理冬季商品，<br />再让顾客看见。</h1>
-        <p class="lead">用店主邮箱登录。内部截图、成本和审核中的素材不会出现在顾客端。</p>
+        <p class="lead">用店主邮箱和密码登录。内部截图、成本和审核中的素材不会出现在顾客端。</p>
         <form id="loginForm" class="login-form">
           <label for="loginEmail">店主邮箱</label>
-          <div class="login-row"><input id="loginEmail" type="email" autocomplete="email" placeholder="name@example.com" required /><button type="submit">发送登录链接</button></div>
-          <p id="loginNotice" class="form-notice">首次使用会收到一封登录邮件。</p>
+          <input id="loginEmail" type="email" autocomplete="email" placeholder="name@example.com" required />
+          <label for="loginPassword" class="password-label">密码</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" minlength="8" placeholder="至少 8 位" />
+          <div class="login-actions"><button type="submit" data-login-mode="password">密码登录</button><button type="submit" class="secondary-button" data-login-mode="magic">发送邮箱登录链接</button></div>
+          <p id="loginNotice" class="form-notice">首次使用请先用邮箱登录链接进入后台，再在后台设置密码。</p>
         </form>
         <aside class="setup-note" id="setupNote" hidden>
           <strong>还差一次管理员开通</strong>
@@ -36,8 +39,13 @@
       <section id="workspace" hidden>
         <div class="workspace-head">
           <div><p class="eyebrow">CATALOG STUDIO / WINTER 26</p><h1>本季上货台</h1></div>
-          <span class="live-state"><i></i> 已连接素材库</span>
+          <div class="workspace-status"><span class="live-state"><i></i> 已连接素材库</span><button type="button" class="quiet-button" id="passwordSettingsButton">设置登录密码</button></div>
         </div>
+        <form class="password-settings" id="passwordSettingsForm" hidden>
+          <label for="newPassword">设置新密码<input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="至少 8 位" required /></label>
+          <label for="confirmPassword">再次输入<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="再次输入密码" required /></label>
+          <button type="submit">保存密码</button><p class="form-notice" id="passwordNotice">设置后可直接使用邮箱和密码登录。</p>
+        </form>
 
         <section class="upload-panel" aria-labelledby="assets-title">
           <div class="panel-heading"><div><p class="eyebrow">01 / MATERIALS</p><h2 id="assets-title">先放进素材库</h2></div><p>截图用于内部记录；高清图将在商品发布后出现在顾客端。</p></div>
