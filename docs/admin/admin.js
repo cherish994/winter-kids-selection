@@ -14,8 +14,6 @@ const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
 const PRODUCT_QUEUE_KEY = "winter-kids-product-queue";
 const BRAND_SETTINGS_KEY = "winter-kids-brand-settings";
-const DEMO_ACCESS_KEY = "atelier-winter-26";
-const DEMO_MODE = window.location.hash === `#${DEMO_ACCESS_KEY}`;
 let session = readSession();
 let productQueue = readProductQueue();
 let brandSettings = readBrandSettings();
@@ -304,20 +302,13 @@ function showWorkspace(user) {
   loginShell.hidden = true;
   setupNote.hidden = true;
   workspace.hidden = false;
-  document.querySelector("#logoutButton").hidden = DEMO_MODE;
-  document.querySelector("#passwordSettingsButton").hidden = DEMO_MODE;
-  document.querySelector("#passwordSettingsForm").hidden = true;
-  document.querySelector("#adminIdentity").textContent = DEMO_MODE ? "本机演示" : user.email || "店主";
-  if (!DEMO_MODE) restoreTodayProductQueue();
+  document.querySelector("#logoutButton").hidden = false;
+  document.querySelector("#adminIdentity").textContent = user.email || "店主";
+  restoreTodayProductQueue();
   loadCatalog();
 }
 
 async function initialise() {
-  if (DEMO_MODE) {
-    showWorkspace({ email: "本机演示" });
-    uploadNotice.textContent = "演示模式已开启：素材和商品卡只保留在这台设备，不会进入真实素材库。";
-    return;
-  }
   let callbackMessage = "";
   try {
     callbackMessage = await captureMagicLinkSession();
@@ -417,9 +408,6 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
 });
 
 async function uploadOne(file, bucket, prefix) {
-  if (DEMO_MODE) {
-    return { path: `demo/${file.name}`, publicUrl: URL.createObjectURL(file) };
-  }
   const path = filePath(prefix, file);
   await request(`/storage/v1/object/${bucket}/${pathsafe(path)}`, {
     method: "POST",
@@ -496,7 +484,7 @@ async function uploadFiles(files, kind) {
       saveProductQueue();
       renderProductQueue();
     }
-    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" ? "；已放入待匹配素材" : kind === "size" ? "；已作为默认尺码表" : ""}${DEMO_MODE ? "（仅本机演示）" : ""}。`;
+    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" ? "；已放入待匹配素材" : kind === "size" ? "；已作为默认尺码表" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = `${error.message} 这张图没有保存，请重新选择后重试。`;
   }
@@ -655,10 +643,6 @@ async function saveQueuedProducts(status) {
     notice.textContent = "还没有已匹配价格的商品卡。先在上方粘贴快团团价格。";
     return;
   }
-  if (DEMO_MODE) {
-    notice.textContent = "商品卡已可在本机继续编辑；演示模式不会写入数据库或展示到顾客端。";
-    return;
-  }
   if (status === "published") {
     const incomplete = matchedItems.find((item) => !item.name.trim() || !item.retailPrice || !item.purchaseUrl.trim());
     if (incomplete) {
@@ -721,10 +705,6 @@ function splitValues(value) {
 
 document.querySelector("#productForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (DEMO_MODE) {
-    productNotice.textContent = "演示模式不会保存到真实素材库。请使用上方的素材匹配流程预览商品卡。";
-    return;
-  }
   const status = event.submitter.dataset.status;
   const buttons = event.currentTarget.querySelectorAll("button[type=submit]");
   buttons.forEach((button) => { button.disabled = true; });
@@ -782,10 +762,6 @@ document.querySelector("#productForm").addEventListener("submit", async (event) 
 
 async function loadCatalog() {
   const list = document.querySelector("#catalogList");
-  if (DEMO_MODE) {
-    list.innerHTML = `<p class="empty">本机演示模式：匹配后的商品卡会留在上方供你预览，不会写入真实商品库。</p>`;
-    return;
-  }
   list.innerHTML = `<p class="empty">正在读取本季商品…</p>`;
   try {
     const rows = await request("/rest/v1/products?select=sku,brand,name,status,retail_price,published_at,product_sources(actual_cost)&order=created_at.desc");
