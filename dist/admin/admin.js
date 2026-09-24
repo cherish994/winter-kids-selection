@@ -19,12 +19,25 @@ let productQueue = readProductQueue();
 let brandSettings = readBrandSettings();
 
 function readSession() {
-  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
+  try {
+    const stored = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    if (!stored) return null;
+    const expiresAt = Number(stored.expires_at || 0);
+    return expiresAt > 0 && expiresAt <= 1e12
+      ? { ...stored, expires_at: expiresAt * 1000 }
+      : stored;
+  } catch { return null; }
 }
 
 function saveSession(nextSession) {
-  session = nextSession;
-  localStorage.setItem(SESSION_KEY, JSON.stringify(nextSession));
+  const rawExpiry = Number(nextSession?.expires_at || 0);
+  const expiresAt = rawExpiry > 1e12
+    ? rawExpiry
+    : rawExpiry > 0
+      ? rawExpiry * 1000
+      : Date.now() + Number(nextSession?.expires_in || 3600) * 1000;
+  session = { ...nextSession, expires_at: expiresAt };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 function clearSession() {
@@ -96,7 +109,28 @@ function authHeaders(extra = {}) {
   };
 }
 
+async function refreshSessionIfNeeded() {
+  const expiresAt = Number(session?.expires_at || 0);
+  if (!session?.refresh_token || (expiresAt && expiresAt > Date.now() + 60_000)) return;
+
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: session.refresh_token })
+  });
+  const nextSession = await response.json().catch(() => ({}));
+  if (!response.ok || !nextSession?.access_token) {
+    clearSession();
+    throw new Error("登录状态已过期，请重新登录后再设置密码。");
+  }
+  saveSession(nextSession);
+}
+
 async function request(path, options = {}) {
+  await refreshSessionIfNeeded();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 45000);
   try {
@@ -107,7 +141,16 @@ async function request(path, options = {}) {
     });
     const type = response.headers.get("content-type") || "";
     const body = type.includes("application/json") ? await response.json().catch(() => ({})) : await response.text();
-    if (!response.ok) throw new Error(body?.message || body?.error_description || body?.hint || "操作没有完成，请稍后重试。");
+    if (!response.ok) {
+      throw new Error(
+        body?.message ||
+        body?.msg ||
+        body?.error_description ||
+        body?.hint ||
+        (typeof body === "string" && body.trim()) ||
+        `操作没有完成（状态 ${response.status}），请稍后重试。`
+      );
+    }
     return body;
   } catch (error) {
     if (error.name === "AbortError") throw new Error("上传超过 45 秒仍未完成。请检查网络后重新选择这张图片。\n");
