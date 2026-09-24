@@ -177,16 +177,52 @@ async function restoreTodayProductQueue() {
   }
 }
 
-function captureMagicLinkSession() {
-  const values = new URLSearchParams(window.location.hash.slice(1));
-  const accessToken = values.get("access_token");
-  if (!accessToken) return;
-  saveSession({
-    access_token: accessToken,
-    refresh_token: values.get("refresh_token"),
-    expires_at: Date.now() + Number(values.get("expires_in") || 3600) * 1000
-  });
-  history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+function authCallbackValue(name) {
+  const hashValues = new URLSearchParams(window.location.hash.slice(1));
+  const queryValues = new URLSearchParams(window.location.search);
+  return hashValues.get(name) || queryValues.get(name) || "";
+}
+
+function clearAuthCallbackUrl() {
+  history.replaceState({}, document.title, window.location.pathname);
+}
+
+async function captureMagicLinkSession() {
+  // Supabase normally returns credentials in the URL fragment. Some mail apps
+  // preserve them as query parameters instead, so accept either form.
+  const accessToken = authCallbackValue("access_token");
+  if (accessToken) {
+    saveSession({
+      access_token: accessToken,
+      refresh_token: authCallbackValue("refresh_token"),
+      expires_at: Date.now() + Number(authCallbackValue("expires_in") || 3600) * 1000
+    });
+    clearAuthCallbackUrl();
+    return "";
+  }
+
+  // This also supports a future token-hash email template without exposing the
+  // confirmation token in browser history after it has been redeemed.
+  const tokenHash = authCallbackValue("token_hash");
+  const tokenType = authCallbackValue("type");
+  if (tokenHash && tokenType) {
+    const authSession = await request("/auth/v1/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_hash: tokenHash, type: tokenType })
+    });
+    if (!authSession?.access_token) throw new Error("登录链接未能换取登录会话，请重新发送一封新链接。");
+    saveSession(authSession);
+    clearAuthCallbackUrl();
+    return "";
+  }
+
+  const callbackError = authCallbackValue("error_description") || authCallbackValue("error");
+  if (callbackError) {
+    clearAuthCallbackUrl();
+    return `登录链接未生效：${callbackError}。请重新发送一封新链接。`;
+  }
+  return "";
 }
 
 async function getUser() {
@@ -230,9 +266,14 @@ function showWorkspace(user) {
 }
 
 async function initialise() {
-  captureMagicLinkSession();
+  let callbackMessage = "";
+  try {
+    callbackMessage = await captureMagicLinkSession();
+  } catch (error) {
+    callbackMessage = error.message || "登录链接未能完成验证，请重新发送一封新链接。";
+  }
   const user = await getUser();
-  if (!user) return showLogin();
+  if (!user) return showLogin(callbackMessage);
   try {
     if (await hasAdminAccess(user.id)) showWorkspace(user);
     else showSetup(user);
