@@ -161,6 +161,46 @@ async function request(path, options = {}) {
   }
 }
 
+// Password sign-in, recovery verification, and magic-link delivery must not
+// inherit a stale browser session. This matters especially on mobile, where a
+// recovery link may have left an older access token in local storage.
+async function publicAuthRequest(path, options = {}) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 45000);
+  try {
+    const response = await fetch(`${SUPABASE_URL}${path}`, {
+      ...options,
+      cache: "no-store",
+      signal: options.signal || controller.signal,
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        ...options.headers
+      }
+    });
+    const type = response.headers.get("content-type") || "";
+    const body = type.includes("application/json") ? await response.json().catch(() => ({})) : await response.text();
+    if (!response.ok) {
+      throw new Error(
+        body?.message ||
+        body?.msg ||
+        body?.error_description ||
+        body?.hint ||
+        (typeof body === "string" && body.trim()) ||
+        `操作没有完成（状态 ${response.status}），请稍后重试。`
+      );
+    }
+    return body;
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("连接登录服务超过 45 秒仍未完成，请切换网络后重试。\n");
+    if (error instanceof TypeError && /load failed|failed to fetch/i.test(error.message || "")) {
+      throw new Error("手机暂时无法连接登录服务。请用 Safari 打开后台链接，或切换 Wi‑Fi / 蜂窝网络后重试。");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function pathsafe(value) {
   return value.split("/").map(encodeURIComponent).join("/");
 }
@@ -250,7 +290,7 @@ async function captureMagicLinkSession() {
   const tokenHash = authCallbackValue("token_hash");
   const tokenType = authCallbackValue("type");
   if (tokenHash && tokenType) {
-    const authSession = await request("/auth/v1/verify", {
+    const authSession = await publicAuthRequest("/auth/v1/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token_hash: tokenHash, type: tokenType })
@@ -337,7 +377,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
   try {
     if (mode === "magic") {
       const redirectTo = `${window.location.origin}${window.location.pathname}`;
-      await request(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      await publicAuthRequest(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, create_user: true })
@@ -346,7 +386,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) throw new Error("请输入至少 6 位的密码；首次使用可先发送邮箱登录链接。");
-    const authSession = await request("/auth/v1/token?grant_type=password", {
+    const authSession = await publicAuthRequest("/auth/v1/token?grant_type=password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
