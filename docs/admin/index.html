@@ -25,7 +25,7 @@
           <label for="loginEmail">店主邮箱</label>
           <input id="loginEmail" type="email" autocomplete="email" placeholder="name@example.com" required />
           <label for="loginPassword" class="password-label">密码</label>
-          <input id="loginPassword" type="password" autocomplete="current-password" minlength="8" placeholder="至少 8 位" />
+          <input id="loginPassword" type="password" autocomplete="current-password" minlength="6" placeholder="至少 6 位" />
           <div class="login-actions"><button type="submit" data-login-mode="password">密码登录</button><button type="submit" class="secondary-button" data-login-mode="magic">发送邮箱登录链接</button></div>
           <p id="loginNotice" class="form-notice">首次使用请先用邮箱登录链接进入后台，再在后台设置密码。</p>
         </form>
@@ -42,8 +42,8 @@
           <div class="workspace-status"><span class="live-state"><i></i> 已连接素材库</span><button type="button" class="quiet-button" id="passwordSettingsButton">设置登录密码</button></div>
         </div>
         <form class="password-settings" id="passwordSettingsForm" hidden>
-          <label for="newPassword">设置新密码<input id="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="至少 8 位" required /></label>
-          <label for="confirmPassword">再次输入<input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="再次输入密码" required /></label>
+          <label for="newPassword">设置新密码<input id="newPassword" type="password" autocomplete="new-password" minlength="6" placeholder="至少 6 位" required /></label>
+          <label for="confirmPassword">再次输入<input id="confirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="再次输入密码" required /></label>
           <button type="submit">保存密码</button><p class="form-notice" id="passwordNotice">设置后可直接使用邮箱和密码登录。</p>
         </form>
 
@@ -102,6 +102,6 @@
         </section>
       </section>
     </main>
-    <script src="admin.js?v=20260924-password-fix"></script>
+    <script src="admin.js?v=20260924-password-length-fix"></script>
   </body>
 </html>

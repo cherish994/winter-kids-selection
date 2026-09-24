@@ -1,6 +1,7 @@
 const SUPABASE_URL = "https://dqslxzroiffhxhacnzdg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_YJpsMmce6XnBd47XQ3GO2A_QsGGqLqs";
 const SESSION_KEY = "winter-kids-admin-session";
+const MIN_PASSWORD_LENGTH = 6;
 
 const loginShell = document.querySelector("#loginShell");
 const workspace = document.querySelector("#workspace");
@@ -344,7 +345,7 @@ document.querySelector("#loginForm").addEventListener("submit", async (event) =>
       loginNotice.textContent = "登录链接已发送。请在邮箱中打开它，再回到这里继续。";
       return;
     }
-    if (password.length < 8) throw new Error("请输入至少 8 位的密码；首次使用可先发送邮箱登录链接。");
+    if (password.length < MIN_PASSWORD_LENGTH) throw new Error("请输入至少 6 位的密码；首次使用可先发送邮箱登录链接。");
     const authSession = await request("/auth/v1/token?grant_type=password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -374,8 +375,8 @@ document.querySelector("#passwordSettingsForm").addEventListener("submit", async
   const confirmation = document.querySelector("#confirmPassword").value;
   const notice = document.querySelector("#passwordNotice");
   const button = event.submitter;
-  if (password.length < 8) {
-    notice.textContent = "密码至少需要 8 位。";
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    notice.textContent = "密码至少需要 6 位。";
     return;
   }
   if (password !== confirmation) {
