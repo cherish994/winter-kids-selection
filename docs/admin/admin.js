@@ -369,6 +369,7 @@ document.querySelector("#passwordSettingsButton").addEventListener("click", () =
 
 document.querySelector("#passwordSettingsForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  const form = event.currentTarget;
   const password = document.querySelector("#newPassword").value;
   const confirmation = document.querySelector("#confirmPassword").value;
   const notice = document.querySelector("#passwordNotice");
@@ -389,7 +390,7 @@ document.querySelector("#passwordSettingsForm").addEventListener("submit", async
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password })
     });
-    event.currentTarget.reset();
+    form.reset();
     notice.textContent = "密码已设置。下次可直接使用邮箱和密码登录。";
   } catch (error) {
     notice.textContent = error.message;
