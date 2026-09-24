@@ -15,6 +15,7 @@ const sizeChartFiles = document.querySelector("#sizeChartFiles");
 const uploadList = document.querySelector("#uploadList");
 const PRODUCT_QUEUE_KEY = "winter-kids-product-queue";
 const BRAND_SETTINGS_KEY = "winter-kids-brand-settings";
+const pendingUploadRetries = { source: [], highRes: [], size: [] };
 let session = readSession();
 let productQueue = readProductQueue();
 let brandSettings = readBrandSettings();
@@ -458,6 +459,28 @@ async function uploadOne(file, bucket, prefix) {
   return { path, publicUrl: bucket === "product-public" ? publicImageUrl(path) : "" };
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+function retryableUploadError(error) {
+  return /load failed|failed to fetch|network|connection|timeout|状态 5\d\d/i.test(error?.message || "");
+}
+
+async function uploadOneWithRetry(file, bucket, prefix) {
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await uploadOne(file, bucket, prefix);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 3 || !retryableUploadError(error)) break;
+      await wait(attempt * 900);
+    }
+  }
+  throw lastError;
+}
+
 function renderUploadItems(items) {
   uploadList.innerHTML = items.map((item) => `<div class="upload-item">${item.previewUrl ? `<img src="${escapeHtml(item.previewUrl)}" alt="${escapeHtml(item.label)}" />` : ""}<div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.kind)}</small></div></div>`).join("");
 }
@@ -487,29 +510,35 @@ async function uploadFiles(files, kind) {
     const batchPrefix = `batches/${new Date().toISOString().slice(0, 10)}`;
     const bucket = kind === "source" ? "product-private" : "product-public";
     const folder = kind === "source" ? "screenshots" : kind === "size" ? "size-charts" : "high-res";
-    const results = [];
+    const saved = [];
+    const failed = [];
     for (const [index, file] of files.entries()) {
       items[index].kind = "正在上传…";
       renderUploadItems(items);
       uploadNotice.textContent = `正在保存${description}（${index + 1}/${files.length}）…`;
-      const result = await uploadOne(file, bucket, `${batchPrefix}/${folder}`);
-      results.push(result);
-      items[index] = {
-        label: result.path.split("/").pop(),
-        kind: `${description}已保存`,
-        previewUrl: result.publicUrl || localPreviews[index]
-      };
+      try {
+        const result = await uploadOneWithRetry(file, bucket, `${batchPrefix}/${folder}`);
+        saved.push({ result, index });
+        items[index] = {
+          label: result.path.split("/").pop(),
+          kind: `${description}已保存`,
+          previewUrl: result.publicUrl || localPreviews[index]
+        };
+      } catch (error) {
+        failed.push({ file, index, error });
+        items[index].kind = "上传失败，可重传";
+      }
       renderUploadItems(items);
     }
-    if (kind === "high-res" && results[0]) document.querySelector("#coverImageUrl").value = results[0].publicUrl;
-    if (kind === "size" && results[0]) {
-      document.querySelector("#sizeChartUrl").value = results[0].publicUrl;
-      productQueue = productQueue.map((item) => item.sizeChartUrl ? item : { ...item, sizeChartUrl: results[0].publicUrl });
+    if (kind === "high-res" && saved[0]) document.querySelector("#coverImageUrl").value = saved[0].result.publicUrl;
+    if (kind === "size" && saved[0]) {
+      document.querySelector("#sizeChartUrl").value = saved[0].result.publicUrl;
+      productQueue = productQueue.map((item) => item.sizeChartUrl ? item : { ...item, sizeChartUrl: saved[0].result.publicUrl });
       saveProductQueue();
       renderProductQueue();
     }
     if (kind === "high-res") {
-      productQueue.push(...results.map((result, index) => ({
+      productQueue.push(...saved.map(({ result, index }) => ({
         id: crypto.randomUUID(),
         sku: automaticSku(),
         brand: activeBrand(),
@@ -525,7 +554,13 @@ async function uploadFiles(files, kind) {
       saveProductQueue();
       renderProductQueue();
     }
-    uploadNotice.textContent = `已保存 ${results.length} 张${description}${kind === "high-res" ? "；已放入待匹配素材" : kind === "size" ? "；已作为默认尺码表" : ""}。`;
+    const retryKey = kind === "high-res" ? "highRes" : kind;
+    pendingUploadRetries[retryKey] = failed.map((item) => item.file);
+    const retryButton = document.querySelector("#uploadButton");
+    retryButton.hidden = !failed.length;
+    uploadNotice.textContent = failed.length
+      ? `已保存 ${saved.length} 张${description}；${failed.length} 张网络不稳定，已标记为“上传失败，可重传”。`
+      : `已保存 ${saved.length} 张${description}${kind === "high-res" ? "；已放入待匹配素材" : kind === "size" ? "；已作为默认尺码表" : ""}。`;
   } catch (error) {
     uploadNotice.textContent = `${error.message} 这张图没有保存，请重新选择后重试。`;
   }
@@ -535,9 +570,14 @@ sourceFiles.addEventListener("change", () => uploadFiles([...sourceFiles.files],
 highResFiles.addEventListener("change", () => uploadFiles([...highResFiles.files], "high-res"));
 sizeChartFiles.addEventListener("change", () => uploadFiles([...sizeChartFiles.files], "size"));
 document.querySelector("#uploadButton").addEventListener("click", () => {
-  uploadFiles([...sourceFiles.files], "source");
-  uploadFiles([...highResFiles.files], "high-res");
-  uploadFiles([...sizeChartFiles.files], "size");
+  const retryButton = document.querySelector("#uploadButton");
+  if (pendingUploadRetries.source.length) uploadFiles(pendingUploadRetries.source, "source");
+  else if (pendingUploadRetries.highRes.length) uploadFiles(pendingUploadRetries.highRes, "high-res");
+  else if (pendingUploadRetries.size.length) uploadFiles(pendingUploadRetries.size, "size");
+  else {
+    retryButton.hidden = true;
+    uploadNotice.textContent = "没有需要重传的图片。";
+  }
 });
 
 document.querySelector("#importOfficialButton").addEventListener("click", async () => {
